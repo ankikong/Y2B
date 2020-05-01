@@ -17,7 +17,7 @@ s = requests.session()
 s.headers.update(header)
 db = sqlite3.connect("data/data.db")
 cur = db.cursor()
-csrf = re.findall("bili_jct=(.*?);", header['cookie'])[0]
+# csrf = re.findall("bili_jct=(.*?);", header['cookie'])[0]
 logger = logging.getLogger("fileLogger")
 
 
@@ -66,9 +66,11 @@ def get_sub(video_id, lan):
     return _return
 
 
-def send_subtitle(aid, lan, cid, fix=False, vid=None, add=None):
+def send_subtitle(aid, lan, cid, cookie, fix=False, vid=None, add=None):
     # cid = s.get("https://api.bilibili.com/x/web-interface/view?aid={}".format(aid)).json()["data"]["cid"]
     _api = "https://api.bilibili.com/x/v2/dm/subtitle/draft/save"
+    csrf = cookie["bili_jct"]
+    s.cookies.update(cookie)
     if not fix:
         sou = get_sub(vid, lan)
     else:
@@ -87,15 +89,18 @@ def send_subtitle(aid, lan, cid, fix=False, vid=None, add=None):
     # print(re.findall("bili_jct=(.*?);", cookie)[0])
     # print(parse.urlencode(send_data))
     # print(json.dumps(send_data, ensure_ascii=False))
-    _res = s.post(url=_api, data=parse.urlencode(send_data).replace("+", "%20").encode()).json()
+    # s.verify = False
+    _res = s.post(url=_api, data=send_data).json()
     if _res["code"] != 0:
         logger.error(str(aid) + json.dumps(_res))
         return False
     logger.info("subtitle success: {}".format(aid))
     return True
 
-def fix_sub():
+def fix_sub(cookie):
     import time
+    csrf = cookie["bili_jct"]
+    s.cookies.update(cookie)
     wait_api = "https://api.bilibili.com/x/v2/dm/subtitle/search/author/list?status=3&page=1&size=100"
     res = s.get(wait_api).json()["data"]["subtitles"]
     for _ in res:
@@ -109,8 +114,10 @@ def fix_sub():
                 sub = sub.replace(i, "".join(lazy_pinyin(i.replace('#', ""), style=Style.TONE)))
             else:
                 sub = sub.replace(i, "#".join(i))
-        if send_subtitle(_["aid"], lan=_["lan"], cid=_["oid"], fix=True, add=sub):
-            res = s.post("https://api.bilibili.com/x/v2/dm/subtitle/del", data={"oid": _["oid"], "csrf": csrf, "subtitle_id": _["id"]}).json()
+        if send_subtitle(_["aid"], lan=_["lan"], cid=_["oid"], cookie=cookie, fix=True, add=sub):
+            res = s.post("https://api.bilibili.com/x/v2/dm/subtitle/del", 
+                                data={"oid": _["oid"], "csrf": csrf, "subtitle_id": _["id"]}
+                            ).json()
             if res["code"] != 0:
                 logger.error(res["message"])
             else:
@@ -125,5 +132,5 @@ if __name__ == "__main__":
     # print(res)
     # res = send_subtitle(vid="wxStlzunxCw", aid=46961283, lan="zh-CN")
     # print(res)
-    fix_sub()
+    # fix_sub()
     pass

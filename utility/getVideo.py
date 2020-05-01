@@ -8,6 +8,8 @@ from utility import tool
 from urllib import parse
 import re
 
+logger = logging.getLogger("fileLogger")
+
 class GetVideo(object):
     @staticmethod
     def getUrl(video_url):
@@ -175,13 +177,18 @@ def getVideoUrl3(vid):
     rs = s.post("https://www.y2b.xyz/analysis", json={"url":"https://www.youtube.com/watch?v={}".format(vid),"channel":"one"})
     if rs.status_code != 200:
         return ""
-    rs = rs.json()
-    for i in rs["formats"]:
-        if i["format_id"] == "22":
-            return i["url"]
-    for i in rs["formats"]:
-        if i["format_id"] == "18":
-            return i["url"]
+    try:
+        rs = rs.json()
+        for i in rs["formats"]:
+            if i["format_id"] == "22":
+                return i["url"]
+        for i in rs["formats"]:
+            if i["format_id"] == "18":
+                return i["url"]
+    except Exception as e:
+        logger.error(str(e) + ":" + rs.text)
+        raise e
+        return ""
 
 # if __name__ == "__main__":
 #     print(GetVideo.getUrl("https://www.youtube.com/watch?v=7FDyF8gVoL8"))
