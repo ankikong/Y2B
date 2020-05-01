@@ -155,7 +155,7 @@ header = {
     "Buvid": "XZDA0A8D4BE3EA66CA7BA1C05CB00E8A56143",
     "User-Agent": "Mozilla/5.0 BiliDroid/5.39.0 (bbcallen@gmail.com)",
     "Device-ID": "KREhESMUJxAnQ3FBPUE6Rz8OaV1vDHwWcg",
-    "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
+    # "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
     "Accept-Encoding": "gzip",
 }
 
@@ -166,7 +166,16 @@ def getSign(tmp):
 		for i in sorted(tmp.keys()):
 			ttmp.append(i + "=" + str(tmp[i]))
 		tmp = "&".join(ttmp)
-	return tmp + "&sign=" + md5((tmp + APP_SECRET).encode()).hexdigest()
+	return tmp + "&sign=" + md5((tmp + APP_SECRET).encode("utf-8")).hexdigest()
+
+def getSign2(params:dict) -> dict:
+    tmp = []
+    for i in params:
+        tmp.append("{}={}".format(i, parse.quote_plus(str(params[i]))))
+    tmp.sort()
+    tmp = "&".join(tmp)
+    params["sign"] = md5((tmp + APP_SECRET).encode("utf-8")).hexdigest()
+    return params
 
 class AccountManager:
 
@@ -186,7 +195,7 @@ class AccountManager:
         url = 'https://passport.bilibili.com/api/oauth2/getKey'
 
         s = requests.session()
-        s.verify = False
+        # s.verify = False
         s.headers.update(header)
 
         keyItem = {
@@ -199,9 +208,9 @@ class AccountManager:
         }
 
         # keyData = "appkey=" + APP_KEY
-        keyData = getSign(keyItem)
+        keyData = getSign2(keyItem)
         # header["Content-Type"] = 'application/x-www-form-urlencoded; charset=UTF-8'
-        token = s.post(url, data=keyData, proxies=proxy).json()["data"]
+        token = s.post(url, params=keyData, proxies=proxy).json()["data"]
         key = token['key'].encode()
         _hash=token['hash'].encode()
 
@@ -209,8 +218,8 @@ class AccountManager:
         cipher = PKCS1_v1_5.new(key)
         tmp = cipher.encrypt(_hash + password.encode())
         userid = str(userid)
-        password = b64encode(tmp)
-        password = parse.quote_plus(password)
+        password = b64encode(tmp).decode()
+        # password = parse.quote_plus(password)
         items = {
             "appkey": APP_KEY,
             "build": "5390000",
@@ -222,8 +231,8 @@ class AccountManager:
             "username": userid,
         }
         # item = "appkey=" + APP_KEY + "&password=" + password + "&username=" + userid
-        item = getSign(items)
-        page_temp = s.post(baseurl, data=item, proxies=proxy).json()
+        item = getSign2(items)
+        page_temp = s.post(baseurl, params=item, proxies=proxy).json()
 
         if(page_temp['code'] != 0):
             raise Exception(page_temp['message'])
