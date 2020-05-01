@@ -6,6 +6,7 @@ import platform
 import os
 from utility import tool
 from urllib import parse
+from html import unescape
 import re
 
 logger = logging.getLogger("fileLogger")
@@ -150,7 +151,8 @@ def getVideoUrl2(vid):
         "csrf_token": csrf
     }
     rs = s.post("https://www.findyoutube.net/result", data=post).text
-    return rs
+    urls = re.findall('href=(.*?) download="test.mp4">', rs)
+    return unescape(urls[1])
 
 def getVideoUrl3(vid):
     parser = tool.getSettingConf()
@@ -187,8 +189,19 @@ def getVideoUrl3(vid):
                 return i["url"]
     except Exception as e:
         logger.error(str(e) + ":" + rs.text)
-        raise e
+        # raise e
         return ""
+
+def getVideoUrl(vid):
+    func = [getVideoUrl1, getVideoUrl2, getVideoUrl3]
+    for i in func:
+        try:
+            rs = i(vid)
+            if len(rs) > 0:
+                return rs
+        except:
+            pass
+    return ""
 
 # if __name__ == "__main__":
 #     print(GetVideo.getUrl("https://www.youtube.com/watch?v=7FDyF8gVoL8"))

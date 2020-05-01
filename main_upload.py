@@ -15,7 +15,7 @@ def run():
     account = tool.AccountManager("Anki")
     for i in work:
         logger.info("start:" + json.dumps(i))
-        videoUrl = getVideo.getVideoUrl3(i["id"])
+        videoUrl = getVideo.getVideoUrl(i["id"])
         if len(videoUrl) == 0:
             continue
         dmer = tool.DownloadManager(url=videoUrl, proxy=proxy, files=i["id"])
