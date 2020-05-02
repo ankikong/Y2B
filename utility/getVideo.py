@@ -260,7 +260,7 @@ class VideoManager:
             if os.path.exists(self._o):
                 os.remove(self._o)
             if os.system(cmd.format(_a, _v, self._o)) != 0:
-                return False
+                return False, ""
             return True, self._o
         else:
             return True, self._dmer1.telFileLocate()

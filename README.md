@@ -6,10 +6,11 @@
 
 1. 先执行`pip install -r requirements.txt`,然后再执行`python init.py`
 2. 在conf文件夹,`setting.conf`,在里面填写b站账号密码,再填写`GoogleApi`的密钥
-3. 因为目前还不支持区分单独投稿还是合集投稿,所以目前全部为合集投稿,第一个视频需要手动投稿
-4. `channel.conf`是指定搬运的`Youtube`频道
-5. 需要安装aria2c，并开启jsonrpc
-6. 改完上述配置文件,直接`python main.py`就好了
+3. 把`setting.conf`里面的**所有中文全部删掉**，不然会报错
+4. 因为目前还不支持区分单独投稿还是合集投稿,所以目前全部为合集投稿,第一个视频需要手动投稿
+5. `channel.conf`是指定搬运的`Youtube`频道
+6. 需要安装aria2c，并开启jsonrpc
+7. 改完上述配置文件,直接`python main.py`就好了
 
 ## 软件依赖
 
