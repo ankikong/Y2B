@@ -127,22 +127,20 @@ def getVideoUrl1(vid):
                 "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
                 "accept-encoding": "gzip, deflate, br",
                 }
-    s = requests.post("http://www.lilsubs.com/", data={"url": url}, headers=header).text
+    sess = tool.Session()
+    s = sess.post("http://www.lilsubs.com/", data={"url": url}, headers=header, useProxy=True).text
     s = s.split('<h3>Download Links</h3>')[1].split('HD720 Video')[0]
     s = re.findall('href="(.*?)"', s)[0]
     return s
 
 def getVideoUrl2(vid):
-    parser = tool.getSettingConf()
-    s = requests.session()
-    s.proxies = dict(parser.items("Proxy"))
-
+    s = tool.Session()
     url = "https://www.findyoutube.net"
     s.headers.update({
         "origin": "https://www.findyoutube.net",
         "referer": "https://www.findyoutube.net/"
     })
-    rs = s.get(url).text
+    rs = s.get(url, useProxy=True).text
     csrf = re.findall('csrf_token" type="hidden" value="([^"]+)', rs)[0]
     post = {
         "url": "https://www.youtube.com/watch?v=" + vid,
@@ -150,14 +148,12 @@ def getVideoUrl2(vid):
         "submit": "Download",
         "csrf_token": csrf
     }
-    rs = s.post("https://www.findyoutube.net/result", data=post).text
+    rs = s.post("https://www.findyoutube.net/result", data=post, useProxy=True).text
     urls = re.findall('href=(.*?) download="test.mp4">', rs)
     return unescape(urls[1])
 
 def getVideoUrl3(vid):
-    parser = tool.getSettingConf()
-    s = requests.session()
-    s.proxies = dict(parser.items("Proxy"))
+    s = tool.Session()
     s.headers.update({
             "Sec-Fetch-Dest": "empty",
             "X-Requested-With": "XMLHttpRequest",
@@ -170,13 +166,15 @@ def getVideoUrl3(vid):
             "Referer": "https://www.y2b.xyz/",
             "Accept-Language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6",
     })
-    raw = s.get("https://www.y2b.xyz/").text
+    raw = s.get("https://www.y2b.xyz/", useProxy=True).text
     csrf = re.findall('csrf_token = "([^"]+)', raw)[0]
     s.headers.update({
         "X-XSRF-TOKEN": parse.unquote(s.cookies.get_dict()["XSRF-TOKEN"]),
         "X-CSRF-TOKEN": csrf
     })
-    rs = s.post("https://www.y2b.xyz/analysis", json={"url":"https://www.youtube.com/watch?v={}".format(vid),"channel":"one"})
+    rs = s.post("https://www.y2b.xyz/analysis", 
+                json={"url":"https://www.youtube.com/watch?v={}".format(vid),"channel":"one"},
+                useProxy=True)
     if rs.status_code != 200:
         return ""
     try:

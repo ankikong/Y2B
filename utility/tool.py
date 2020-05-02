@@ -8,7 +8,7 @@ from Crypto.PublicKey import RSA
 from hashlib import md5
 from urllib import parse
 import os
-import logging.config
+import logging, logging.config
 # pycryptodome pycrypto
 
 
@@ -22,6 +22,7 @@ channelConf = "conf/channel.conf"
 dbPath = "data/data.db"
 
 logging.config.fileConfig(settingConf)
+logger = logging.getLogger("fileLogger")
 
 def _run(file):
     parser = ConfigParser()
@@ -39,6 +40,57 @@ def getDB():
 
 # config tool end
 
+# my requests session start
+
+class Session(requests.Session):
+
+    def __init__(self):
+        super(Session, self).__init__()
+        parser = getSettingConf()
+        self.proxy = dict(parser.items("Proxy"))
+        self.timeouts: tuple = (120, 240)
+        self.retryDelay: int = 1
+        self.retry: int = 4
+        self.headers.update({
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.129 Safari/537.36",
+            "accept-language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6",
+            "cache-control": "max-age=0",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "Sec-Fetch-Site": "same-site"
+        })
+        parser = getSettingConf()
+        self.proxy = dict(parser.items("Proxy")) 
+
+    def req(self, method:str, url:str, useProxy:bool=False, **args) -> requests.models.Response:
+        args = args.copy()
+        if useProxy:
+            args["proxies"] = self.proxy
+        if args.get("headers") is None:
+            args["headers"] = {
+                "referer": url,
+                "orgin": url
+            }
+        if args.get("timeout") is None:
+            args["timeout"] = self.timeouts
+        for _ in range(self.retry):
+            try:
+                return self.request(method, url, **args)
+            except Exception as e:
+                logger.debug(str(e) + ",retrying......")
+                time.sleep(self.retryDelay)
+        raise Exception("check network status")
+
+    def get(self, url, useProxy:bool=False, **args) -> requests.models.Response:
+        return self.req("GET", url, useProxy, **args)
+
+    def post(self, url, useProxy:bool=False, **args) -> requests.models.Response:
+        return self.req("POST", url, useProxy, **args)
+
+    def put(self, url, useProxy:bool=False, **args) -> requests.models.Response:
+        return self.req("PUT", url, useProxy, **args)
+
+# my requests session end
 
 # download tool start
 
@@ -194,9 +246,9 @@ class AccountManager:
         baseurl="https://passport.bilibili.com/api/v3/oauth2/login"
         url = 'https://passport.bilibili.com/api/oauth2/getKey'
 
-        s = requests.session()
+        s = Session()
         # s.verify = False
-        s.headers.update(header)
+        # s.headers.update(header)
 
         keyItem = {
             "appkey": APP_KEY,
@@ -332,10 +384,13 @@ class AccountManager:
 # verify tool end
 
 if __name__ == "__main__":
-    ac = AccountManager("Anki")
-    print(ac.getToken())
-    print(ac.userInformation())
-    print(ac.getMid())
-    cookie = ac.getCookies()
-    rs = requests.get("https://api.bilibili.com/x/web-interface/nav", cookies=cookie).text
-    print(rs)
+    # ac = AccountManager("Anki")
+    # print(ac.getToken())
+    # print(ac.userInformation())
+    # print(ac.getMid())
+    # cookie = ac.getCookies()
+    # rs = requests.get("https://api.bilibili.com/x/web-interface/nav", cookies=cookie).text
+    # print(rs)
+    # print(Session.get("https://baidu.com", proxies={"https":"http://127.0.0.1:8888"}, verify=False))
+    # print(Session.post("https://baidu.com", proxies={"https":"http://127.0.0.1:8888"}, headers={"fuck": "fuck"}, verify=False))
+    pass

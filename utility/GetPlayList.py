@@ -7,25 +7,61 @@ from utility import tool
 def get_work_list():
     parser = tool.getSettingConf()
     api_key = parser.get("GoogleToken", "token")
-    proxies = dict(parser.items("Proxy"))
     db = sqlite3.connect("data/data.db")
     _return = []
     channel = tool.getChannelConf()[0]
+    s = tool.Session()
     for i in channel:
         if i == 'DEFAULT':
             continue
-        _ = dict(channel.items(i))
-        url = "https://www.googleapis.com/youtube/v3/playlistItems?" + \
-              "part=snippet&playlistId={0}&key={1}&maxResults=50".format(_["id"], api_key)
-        _res = requests.get(url, proxies=proxies).json()
-        for __ in _res["items"]:
-            tmp_data = __["snippet"]
-            video_id = tmp_data["resourceId"]["videoId"]
-            db_res = db.execute("select count(vid) from data where vid='{}';".format(video_id)).fetchone()[0]
-            if int(db_res) != 0:
-                # print(video_id)
-                continue
-            _return.append({"title": tmp_data["title"], "id": video_id, "av": _["av"]})
+        settings = dict(channel.items(i))
+        pages = int(settings["pages"])
+        params = {
+            "part": "snippet",
+            "playlistId": settings["id"],
+            "key": api_key,
+            "maxResults": settings["countperpage"],
+            "pageToken": None
+        }
+        for _ in range(pages):
+            url = "https://www.googleapis.com/youtube/v3/playlistItems"
+            _res = s.get(url, params=params, useProxy=True).json()
+            for __ in _res["items"]:
+                tmp_data = __["snippet"]
+                video_id = tmp_data["resourceId"]["videoId"]
+                db_res = db.execute("select count(vid) from data where vid='{}';".format(video_id)).fetchone()[0]
+                if int(db_res) != 0:
+                    # print(video_id)
+                    continue
+                tmpTitle = tmp_data["title"]
+                tmpRs = settings.copy()
+                tmpRs.update({
+                        "title": tmpTitle[0:min(80, len(tmpTitle))],  # 破站限制长度
+                        "id": video_id,
+                        "ptitle": str(settings.get("title", "")).format(title=tmpTitle, 
+                                                                     ctitle=tmp_data["channelTitle"],
+                                                                     ptime=tmp_data["publishedAt"],
+                                                                     surl="https://www.youtube.com/watch?v=" + video_id),
+                        "desc": str(settings.get("desc", "")).format(title=tmpTitle, 
+                                                                     ctitle=tmp_data["channelTitle"],
+                                                                     ptime=tmp_data["publishedAt"],
+                                                                     surl="https://www.youtube.com/watch?v=" + video_id)
+                })
+                tmpRs["tags"] = tmpRs.get("tags", "").split(",")
+
+                ptitle = tmpRs.get("ptitle", "")
+                ptitle = ptitle[0:min(80, len(ptitle))]
+                tmpRs["ptitle"] = ptitle
+                
+                desc = tmpRs.get("desc", "")
+                desc = desc.replace("\\n", "\n")
+                desc = desc[0:min(250, len(desc))]
+                tmpRs["desc"] = desc
+
+                _return.append(tmpRs)
+            params["pageToken"] = _res.get("nextPageToken", None)
+            if _res.get("nextPageToken", None) is None:
+                break
     db.close()
     return _return
 

@@ -1,4 +1,4 @@
-from utility import getVideo, GetPlayList, Upload3
+from utility import getVideo, GetPlayList, Upload4
 import requests
 import sqlite3
 import json
@@ -22,7 +22,11 @@ def run():
         dmer.download()
         if dmer.waitForFinishing() == 1:
             # res = Upload3.upload(i, account, dmer)
-            res = Upload3.upload(account.getCookies(), i, dmer.telFileLocate())
+            if i["multipart"] == "1":
+                res = Upload4.uploadWithOldBvid(account.getCookies(), i, dmer.telFileLocate())
+            else:
+                res = Upload4.uploadWithNewBvid(account.getCookies(), i, dmer.telFileLocate())
+            # res = Upload3.upload(account.getCookies(), i, dmer.telFileLocate())
             if type(res) == bool:
                 continue
             res = json.loads(res)
@@ -30,7 +34,7 @@ def run():
                 logger.error(res["message"])
                 continue
             with tool.getDB() as db:
-                db.execute("insert into data(vid,aid,title) values(?,?,?);", (i["id"], res["data"]["aid"], i["title"]))
+                db.execute("insert into data(vid,bvid,title) values(?,?,?);", (i["id"], res["data"]["bvid"], i["title"]))
                 db.commit()
             logger.info("finished")
             dmer.deleteFile()
