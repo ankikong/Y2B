@@ -242,7 +242,7 @@ class VideoManager:
         jsonrpc = parser.get("Aria", "jsonrpc")
         ffmpegArgs = parser.get("FFMPEG", "args")
         ffmpegPath = parser.get("FFMPEG", "path")
-        cmd = ffmpegPath + " -i '{}' -i '{}' " + ffmpegArgs + " '{}'"
+        cmd = ffmpegPath + ' -i "{}" -i "{}" ' + ffmpegArgs + ' "{}"'
         self._dmer1 = tool.DownloadManager(rs["vURL"], proxy=proxy, jsonrpc=jsonrpc, files=self.vid + "_v")
         self._dmer1.download()
         if rs.get("sURL") is not None:
