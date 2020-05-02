@@ -144,7 +144,7 @@ class DownloadManager:
         return int(self.telStatus()["result"]["totalLength"])
 
     def telFileLocate(self):
-        return self.telStatus()["result"]["files"][0]["path"]
+        return self.telStatus()["result"]["files"][0]["path"].replace("//", "/")
 
     def telFinished(self):
         rs = self.telStatus()["result"]
@@ -181,7 +181,9 @@ class DownloadManager:
         filePath = self.telFileLocate()
         if os.path.exists(filePath):
             os.remove(filePath)
-
+    def getDirs(self):
+        rs = self._post({"jsonrpc":"2.0","method":"aria2.getGlobalOption","id":1,"params":[]})
+        return (str(rs["result"]["dir"]).replace("\\", "/") + "/").replace("//", "/")
 # download tool end
 
 

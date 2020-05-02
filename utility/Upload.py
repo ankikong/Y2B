@@ -1,5 +1,3 @@
-# Upload.py 是把每个视频单独作为一个视频发布，而不是视频合集，即一个av下
-# 只有一个cid
 import requests
 import json
 import re
@@ -9,54 +7,20 @@ import base64
 import time
 import urllib3
 import logging
-from utility import conf
+from utility.getVideo import GetVideo
+from utility import tool
 logger = logging.getLogger("fileLogger")
 urllib3.disable_warnings()
-# proxies = {"http": "http://127.0.0.1:8087", "https": "http://127.0.0.1:8087"}
-proxies = None
+proxies = {"http": "http://127.0.0.1:10809", "https": "http://127.0.0.1:10809"}
+# proxies = None
 
-def get_youtube_url(vid):
-    url = "https://www.youtube.com/watch?v=" + vid
-    header = {"Content-Type": "application/x-www-form-urlencoded", 
-                "Origin": "null",
-                "content-type": "application/x-www-form-urlencoded",
-                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-                "accept-encoding": "gzip, deflate, br",
-                }
-    s = requests.post("http://www.lilsubs.com/", data={"url": url}, headers=header).text
-    s = s.split('<h3>Download Links</h3>')[1].split('HD720 Video')[0]
-    s = re.findall('href="(.*?)"', s)[0]
-    logger.debug(s)
-    return s
+# def upload(videoInfo:dict, accountInfo:tool.AccountManager, dmer:tool.DownloadManager):
 
-def upload(data, cookie):
-    source_url = "https://www.youtube.com/watch?v=" + data["id"]
-    mid = re.findall('DedeUserID=(.*?);', cookie + ';')[0]
-    csrf = re.findall('bili_jct=(.*?);', cookie + ';')[0]
-    header = {
-            'Accept': 'application/json, text/javascript, */*; q=0.01',
-            'Referer': 'https://space.bilibili.com/{}/#!/'.format(mid),
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/5' +
-                          '37.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36',
-            'cookie': cookie,
-            "Origin": "https://member.bilibili.com",
-    }
-    s = requests.session()
-    s.headers.update(header)
-    # file info
-    video_url = get_youtube_url(data["id"])
-    while True:
-        try:
-            # file_size = requests.get(video_url, proxies=proxies, verify=False, headers={"Range": "bytes=0-10"}, timeout=(30, 30)).headers["Content-Range"]
-            file_size = requests.post("https://bilibili-tw.appspot.com/get", data={"url": video_url, "header": json.dumps({"Range": "bytes=0-10"})}).headers["Content-Range"]
-            break
-        except (requests.ConnectionError, requests.ReadTimeout, requests.ConnectTimeout):
-            logger.error("get YouTuBe video failed")
-            time.sleep(10)
-    file_size = int(file_size.split('/')[-1])
+def uploadFile(cookie:dict, videoPath:str) -> str:
+    file_size = os.path.getsize(videoPath)
+    s = tool.Session()
+    s.cookies.update(cookie)
 
-    logger.info("get info done")
-    # preupload
     param = {
             "os": "upos",
             "upcdn": "ws",
@@ -64,10 +28,12 @@ def upload(data, cookie):
             "size": file_size,
             "r": "upos",
             "profile": "ugcupos/yb",
-            "ssl": "0"
-        }
+            "ssl": "0",
+            "version": "2.6.4",
+            "build": "2060400",
+    }
     url = "https://member.bilibili.com/preupload"
-    _data = s.post(url=url, params=param).text
+    _data = s.get(url=url, params=param).text
     _data = json.loads(_data)
     upos_uri = _data["upos_uri"].replace("upos:/", "").replace("/ugc/", "")
     biz_id = _data["biz_id"]
@@ -93,22 +59,12 @@ def upload(data, cookie):
     index = 1
     now_size = 0
     restore = {"parts": []}
+
+    file = open(videoPath, "rb")
+    # 分块下载&上传
     while now_size < file_size:
         new_end = min(now_size + upload_size, file_size - 1)
-        tmp_header = {"Range": "bytes={}-{}".format(now_size, new_end)}
-        while True:
-            try:
-                part = requests.post("https://bilibili-tw.appspot.com/get", data={"url": video_url, "header": json.dumps(tmp_header)})
-                if part.status_code != 200:
-                    logger.error("fail")
-                    time.sleep(2)
-                    continue
-                part = part.content
-                # part = requests.get(video_url, headers=tmp_header, proxies=proxies, verify=False, timeout=(20, 600)).content
-                break
-            except Exception as e:
-                logger.error(str(e))
-                time.sleep(2)
+        part = file.read(upload_size)
         size = len(part)
         param = {
             "total": file_size,
@@ -122,25 +78,78 @@ def upload(data, cookie):
         }
         now_size = new_end + 1
         index += 1
-        res = s.put(url=upload_url, params=param, data=part).text
+        while True:
+            res = s.put(url=upload_url, params=param, data=part)
+            if res.status_code == 200:
+                res = res.text
+                break
+            time.sleep(10)
+            logger.debug("{}/{}: failed".format(index, total_chunk))
         restore["parts"].append({"partNumber": index, "eTag": "etag"})
         logger.debug("{}/{}:".format(index, total_chunk) + res)
+    file.close()
+    # 上传完成
     param = {
         'output': 'json',
         'name': time.ctime() + ".mp4",
         'profile': 'ugcupos/yb',
         'uploadId': upload_id,
-        'biz_id': biz_id
+        'biz_id': biz_id,
     }
-    _data = s.post(upload_url, params=param, data=json.dumps(restore)).text
+    _data = s.post(upload_url, params=param, json=restore).text
     logger.debug(_data)
-    # upload done
-    # post video info
-    def cover(csrf):
-        vid = data["id"]
+    return upos_uri
+
+
+def uploadWithOldBvid(cookie:dict, uploadInfo:dict, videoPath:str) -> str:
+    upos_uri = uploadFile(cookie, videoPath)
+    s = tool.Session()
+    s.cookies.update(cookie)
+
+    url = "https://member.bilibili.com/x/vu/web/edit?csrf=" + cookie["bili_jct"]
+    # s.headers.pop("X-Upos-Auth")
+    _rs = s.get("https://member.bilibili.com/x/web/archive/view?bvid={}".format(uploadInfo["bvid"])).json()["data"]
+    logger.debug(json.dumps(_rs["videos"]))
+    videos = []
+    for i in _rs["videos"]:
+        if len(i['reject_reason']) > 0: # 判断视频是否有错误，比如撞车、解码错误、违法违规等
+            logger.info("{}-{}:{}".format(i["aid"], i["cid"], i["reject_reason"]))
+            continue
+        videos.append({"filename": i["filename"], "title": i["title"]})
+    videos.append({"filename": upos_uri.split(".")[0], "title": uploadInfo["title"][0:min(79, len(uploadInfo["title"]))], "desc": uploadInfo["id"]})
+    send_data = {"copyright": 2, "videos": videos,
+                    "source": _rs["archive"]["source"],
+                    "tid": _rs["archive"]["tid"],
+                    "cover": _rs["archive"]["cover"].split(":")[-1],
+                    "title": _rs["archive"]["title"],
+                    "tag": _rs["archive"]["tag"],
+                    "desc_format_id": 0,
+                    "desc": _rs["archive"]["desc"],
+                    "dynamic": _rs["archive"]["dynamic"],
+                    "subtitle": {
+                        "open": 0,
+                        "lan": ""
+                    },
+                    "bvid": uploadInfo["bvid"],
+                    "handle_staff": False,
+                }
+    logger.debug(json.dumps(send_data))
+    # s.headers.update({"Content-Type": "application/json;charset=UTF-8"})
+    res = s.post(url=url, json=send_data).text
+    logger.debug(res)
+    return res
+
+def uploadWithNewBvid(cookie:dict, uploadInfo:dict, videoPath:str):
+    upos_uri = uploadFile(cookie, videoPath)
+    s = tool.Session()
+    s.cookies.update(cookie)
+    csrf = cookie["bili_jct"]
+    def cover(csrf, uploadInfo):
+        vid = uploadInfo["id"]
         __url = "https://member.bilibili.com/x/vu/web/cover/up"
+        __imgURL = "https://i1.ytimg.com/vi/{}/maxresdefault.jpg"
         __send = {"cover": "data:image/jpeg;base64," +\
-                    base64.b64encode(requests.get("https://i1.ytimg.com/vi/{}/maxresdefault.jpg".format(vid)).content).decode(),
+                    base64.b64encode(s.get(__imgURL.format(vid), useProxy=True).content).decode(),
                     "csrf": csrf
                   }
         __res = s.post(url=__url, data=__send).json()
@@ -148,29 +157,30 @@ def upload(data, cookie):
         return __res["data"]["url"].replace("http:", "").replace("https:", "")
 
     url = "https://member.bilibili.com/x/vu/web/add?csrf=" + csrf
-    s.headers.pop("X-Upos-Auth")
+    # s.headers.pop("X-Upos-Auth")
     _data = s.get("https://member.bilibili.com/x/geetest/pre/add").text
     logging.debug(_data)
-    tmp_title = "【中英/搬运】" + data["title"]
     send_data = {"copyright": 2, "videos": [{"filename": upos_uri.split(".")[0],
-                                                "title": time.ctime(),
+                                                "title": uploadInfo["title"],
                                                 "desc": ""}],
-                    "source": source_url,
-                    "tid": int(data["block"]),
-                    "cover": cover(csrf),
-                    "title": tmp_title[0:min(80, len(tmp_title))],
-                    "tag": ','.join(data["tags"]),
+                    "source": "https://www.youtube.com/watch?v=" + uploadInfo["id"],
+                    "tid": int(uploadInfo["tid"]),
+                    "cover": cover(csrf, uploadInfo),
+                    "title": uploadInfo["ptitle"],
+                    "tag": ','.join(uploadInfo["tags"]),
                     "desc_format_id": 0,
-                    "desc": data["title"] + "\n本视频由爬虫抓取，并由爬虫上传\n字幕请使用b站的外挂字幕,字幕上传需要时间,请等待\n" +
-                            "测试阶段，可能出现数据不准\n",
-                    "dynamic": "#" + "##".join(data["tags"]) + "#",
+                    "desc": uploadInfo["desc"],
+                    "dynamic": "#" + "##".join(uploadInfo["tags"]) + "#",
                     "subtitle": {
                         "open": 0,
                         "lan": ""
                     }
                 }
     logger.debug(json.dumps(send_data))
-    s.headers.update({"Content-Type": "application/json;charset=UTF-8"})
+    # s.headers.update({"Content-Type": "application/json;charset=UTF-8"})
     res = s.post(url=url, json=send_data).text
     logger.debug(res)
     return res
+
+# if __name__ == "__main__":
+#     get_youtube_url2("iCfr8N0Q8IA")

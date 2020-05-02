@@ -119,6 +119,28 @@ def download(path, name, vid):
         print("test")
         time.sleep(10)
 
+def dealURLs(urls, hd):
+    rs = {}
+    if hd:
+        for i in urls:
+            if "itag=137" in i: # 1080P
+                rs["vURL"] = i
+            if "itag=141" in i: # 256k
+                rs["sURL"] = i
+                rs["sd"] = 10
+            if "itag=140" in i and rs.get("sURL", -1) < 9: # 128k
+                rs["sURL"] = i
+            if "itag=139" in i and rs.get("sURL", -1) < 8: # 48k
+                rs["sURL"] = i
+    if not hd or rs.get("vURL") is None or rs.get("sURL") is None:
+        rs.pop("sURL")
+        for i in urls:
+            if "itag=22" in i:
+                rs["vURL"] = i
+            if "itag=18" in i and rs.get("vURL") is None:
+                rs["vURL"] = i
+    return rs
+
 def getVideoUrl1(vid):
     url = "https://www.youtube.com/watch?v=" + vid
     header = {"Content-Type": "application/x-www-form-urlencoded", 
@@ -129,8 +151,7 @@ def getVideoUrl1(vid):
                 }
     sess = tool.Session()
     s = sess.post("http://www.lilsubs.com/", data={"url": url}, headers=header, useProxy=True).text
-    s = s.split('<h3>Download Links</h3>')[1].split('HD720 Video')[0]
-    s = re.findall('href="(.*?)"', s)[0]
+    s = re.findall('target="_blank" href="(.*?)"', s)
     return s
 
 def getVideoUrl2(vid):
@@ -150,7 +171,9 @@ def getVideoUrl2(vid):
     }
     rs = s.post("https://www.findyoutube.net/result", data=post, useProxy=True).text
     urls = re.findall('href=(.*?) download="test.mp4">', rs)
-    return unescape(urls[1])
+    for i in range(len(urls)):
+        urls[i] = unescape(urls[i])
+    return urls
 
 def getVideoUrl3(vid):
     s = tool.Session()
@@ -177,18 +200,10 @@ def getVideoUrl3(vid):
                 useProxy=True)
     if rs.status_code != 200:
         return ""
-    try:
-        rs = rs.json()
-        for i in rs["formats"]:
-            if i["format_id"] == "22":
-                return i["url"]
-        for i in rs["formats"]:
-            if i["format_id"] == "18":
-                return i["url"]
-    except Exception as e:
-        logger.error(str(e) + ":" + rs.text)
-        # raise e
-        return ""
+    ret = []
+    rs = rs.json()
+    for i in rs["formats"]:
+        ret.append(i["url"])
 
 def getVideoUrl(vid):
     func = [getVideoUrl1, getVideoUrl2, getVideoUrl3]
@@ -200,6 +215,60 @@ def getVideoUrl(vid):
         except:
             pass
     return ""
+
+class VideoManager:
+    def __init__(self, vid: str, hd: bool=False):
+        self.vid: str = vid
+        self._dmer1: tool.DownloadManager = None
+        self._dmer2: tool.DownloadManager = None
+        self._o: str = None
+        self._hd: bool = hd
+        self._vURL: str = None
+        self._sURL: str = None
+    
+    def getVideo(self):
+        rs = None
+        for func in [getVideoUrl1, getVideoUrl2, getVideoUrl3]:
+            try:
+                rs = dealURLs(func(self.vid), self._hd)
+                if rs.get("vURL") is not None:
+                    break
+            except:
+                pass
+        if rs is None:
+            return False, ""
+        parser = tool.getSettingConf()
+        proxy = dict(parser.items("Proxy"))
+        jsonrpc = parser.get("Aria", "jsonrpc")
+        ffmpegArgs = parser.get("FFMPEG", "args")
+        cmd = "ffmpeg -i {} -i {} " + ffmpegArgs + " {}"
+        self._dmer1 = tool.DownloadManager(rs["vURL"], proxy=proxy, jsonrpc=jsonrpc, files=self.vid + "_v")
+        self._dmer1.download()
+        if rs.get("sURL") is not None:
+            self._dmer2 = tool.DownloadManager(rs["sURL"], proxy=proxy, jsonrpc=jsonrpc, files=self.vid + "_s")
+            self._dmer2.download()
+            if self._dmer2.waitForFinishing() != 1:
+                return False, ""
+        if self._dmer1.waitForFinishing() != 1:
+            return False, ""
+        
+        if self._dmer2 is not None:
+            _a = self._dmer2.telFileLocate()
+            _v = self._dmer1.telFileLocate()
+            self._o = self._dmer1.getDirs() + self.vid + "_merged.mp4"
+            if os.path.exists(self._o):
+                os.remove(self._o)
+            if os.system(cmd.format(_a, _v, self._o)) != 0:
+                return False
+            return True, self._o
+        else:
+            return True, self._dmer1.telFileLocate()
+    
+    def deleteFile(self):
+        self._dmer1.deleteFile()
+        if self._dmer2 is not None:
+            self._dmer2.deleteFile()
+            os.remove(self._o)
 
 # if __name__ == "__main__":
 #     print(GetVideo.getUrl("https://www.youtube.com/watch?v=7FDyF8gVoL8"))

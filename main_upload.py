@@ -1,4 +1,4 @@
-from utility import getVideo, GetPlayList, Upload4
+from utility import getVideo, GetPlayList, Upload
 import requests
 import sqlite3
 import json
@@ -8,24 +8,19 @@ logger = logging.getLogger("fileLogger")
 
 def run():
     # {"title": tmp_data["title"], "id": video_id, "av": _["av"]}
-    parser = tool.getSettingConf()
     work = GetPlayList.get_work_list()
     logger.info(json.dumps(work))
-    proxy = dict(parser.items("Proxy"))
     account = tool.AccountManager("Anki")
     for i in work:
         logger.info("start:" + json.dumps(i))
-        videoUrl = getVideo.getVideoUrl(i["id"])
-        if len(videoUrl) == 0:
-            continue
-        dmer = tool.DownloadManager(url=videoUrl, proxy=proxy, files=i["id"])
-        dmer.download()
-        if dmer.waitForFinishing() == 1:
+        vmer = getVideo.VideoManager(i["id"], i["hd"]=="1")
+        data = vmer.getVideo()
+        if data[0]:
             # res = Upload3.upload(i, account, dmer)
             if i["multipart"] == "1":
-                res = Upload4.uploadWithOldBvid(account.getCookies(), i, dmer.telFileLocate())
+                res = Upload.uploadWithOldBvid(account.getCookies(), i, data[1])
             else:
-                res = Upload4.uploadWithNewBvid(account.getCookies(), i, dmer.telFileLocate())
+                res = Upload.uploadWithNewBvid(account.getCookies(), i, data[1])
             # res = Upload3.upload(account.getCookies(), i, dmer.telFileLocate())
             if type(res) == bool:
                 continue
@@ -37,6 +32,6 @@ def run():
                 db.execute("insert into data(vid,bvid,title) values(?,?,?);", (i["id"], res["data"]["bvid"], i["title"]))
                 db.commit()
             logger.info("finished")
-            dmer.deleteFile()
+            vmer.deleteFile()
         else:
             logger.info("download failed")
