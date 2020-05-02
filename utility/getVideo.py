@@ -259,7 +259,9 @@ class VideoManager:
             self._o = self._dmer1.getDirs() + self.vid + "_merged.mp4"
             if os.path.exists(self._o):
                 os.remove(self._o)
-            if os.system(cmd.format(_a, _v, self._o)) != 0:
+            nowCmd = cmd.format(_a, _v, self._o)
+            logger.info("cmd: " + nowCmd)
+            if os.system(nowCmd) != 0:
                 return False, ""
             return True, self._o
         else:
