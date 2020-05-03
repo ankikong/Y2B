@@ -4,11 +4,15 @@ formatters:
   default:
     format: "%(asctime)s %(filename)s[%(lineno)d] %(levelname)s: %(message)s"
     datefmt: "%H:%M:%S"
+  simple: 
+    format: "%(asctime)s %(levelname)s: %(message)s"
+    datefmt: "%H:%M:%S"
 handlers:
   console:
     class: logging.StreamHandler
-    formatter: default
+    formatter: simple
     stream: ext://sys.stdout
+    level: INFO
   file:
     class: logging.handlers.RotatingFileHandler
     formatter: default
@@ -22,7 +26,7 @@ loggers:
     handlers: [console]
     level: DEBUG
   fileLogger:
-    handlers: [file]
+    handlers: [file, console]
     level: DEBUG
 root:
   level: DEBUG

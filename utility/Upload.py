@@ -52,6 +52,7 @@ def uploadFile(cookie:dict, videoPath:str) -> str:
         except (IndexError, KeyError):
             time.sleep(2)
             continue
+    logger.debug(json.dumps(_data))
     logger.info("get upload id done")
     # start upload
     # upload_size = 8 * 1024 * 1024
@@ -84,10 +85,10 @@ def uploadFile(cookie:dict, videoPath:str) -> str:
             if res.status_code == 200:
                 res = res.text
                 break
+            logger.error("{}/{}: failed".format(index - 1, total_chunk))
             time.sleep(10)
-            logger.debug("{}/{}: failed".format(index, total_chunk))
         restore["parts"].append({"partNumber": index, "eTag": "etag"})
-        logger.debug("{}/{}:".format(index, total_chunk) + res)
+        logger.info("{}/{}:".format(index - 1, total_chunk) + res)
     file.close()
     # 上传完成
     param = {
@@ -98,6 +99,7 @@ def uploadFile(cookie:dict, videoPath:str) -> str:
         'biz_id': biz_id,
     }
     _data = s.post(upload_url, params=param, json=restore).text
+    logger.info("upload file done: {}".format(upos_uri))
     logger.debug(_data)
     return upos_uri
 
@@ -114,7 +116,7 @@ def uploadWithOldBvid(cookie:dict, uploadInfo:dict, videoPath:str) -> str:
     videos = []
     for i in _rs["videos"]:
         if len(i['reject_reason']) > 0: # 判断视频是否有错误，比如撞车、解码错误、违法违规等
-            logger.info("{}-{}:{}".format(i["aid"], i["cid"], i["reject_reason"]))
+            logger.debug("{}-{}:{}".format(i["aid"], i["cid"], i["reject_reason"]))
             continue
         videos.append({"filename": i["filename"], "title": i["title"]})
     videos.append({"filename": upos_uri.split(".")[0], "title": uploadInfo["title"][0:min(79, len(uploadInfo["title"]))], "desc": uploadInfo["id"]})
@@ -160,7 +162,7 @@ def uploadWithNewBvid(cookie:dict, uploadInfo:dict, videoPath:str):
     url = "https://member.bilibili.com/x/vu/web/add?csrf=" + csrf
     # s.headers.pop("X-Upos-Auth")
     _data = s.get("https://member.bilibili.com/x/geetest/pre/add").text
-    logging.debug(_data)
+    logger.debug(_data)
     send_data = {"copyright": 2, "videos": [{"filename": upos_uri.split(".")[0],
                                                 "title": uploadInfo["title"],
                                                 "desc": ""}],
