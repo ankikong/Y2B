@@ -90,7 +90,8 @@ def send_subtitle(bvid, lan, cid, cookie, fix=False, vid=None, add=None):
     if _res["code"] != 0:
         logger.error(str(bvid) + json.dumps(_res))
         return False
-    logger.info("subtitle success: {}".format(bvid))
+    logger.info("subtitle success BV[{}], Lan[{}], fix[{}], cid[{}]".format(
+        bvid, lan, fix, cid))
     return True
 
 
@@ -101,6 +102,8 @@ def fix_sub(cookie):
     s.cookies.update(cookie)
     wait_api = "https://api.bilibili.com/x/v2/dm/subtitle/search/author/list?status=3&page=1&size=100"
     res = s.get(wait_api).json()["data"]["subtitles"]
+    if res is None:
+        return
     for _ in res:
         tmp_url = "https://api.bilibili.com/x/v2/dm/subtitle/show?oid={}&subtitle_id={}"
         tmp_url = tmp_url.format(_['oid'], _["id"])
