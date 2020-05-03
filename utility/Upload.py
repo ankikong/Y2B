@@ -16,21 +16,22 @@ proxies = {"http": "http://127.0.0.1:10809", "https": "http://127.0.0.1:10809"}
 
 # def upload(videoInfo:dict, accountInfo:tool.AccountManager, dmer:tool.DownloadManager):
 
-def uploadFile(cookie:dict, videoPath:str) -> str:
+
+def uploadFile(cookie: dict, videoPath: str) -> str:
     file_size = os.path.getsize(videoPath)
     s = tool.Session()
     s.cookies.update(cookie)
 
     param = {
-            "os": "upos",
-            "upcdn": "ws",
-            "name": "{}.mp4".format(int(time.time())),
-            "size": file_size,
-            "r": "upos",
-            "profile": "ugcupos/yb",
-            "ssl": "0",
-            "version": "2.6.4",
-            "build": "2060400",
+        "os": "upos",
+        "upcdn": "ws",
+        "name": "{}.mp4".format(int(time.time())),
+        "size": file_size,
+        "r": "upos",
+        "profile": "ugcupos/yb",
+        "ssl": "0",
+        "version": "2.6.4",
+        "build": "2060400",
     }
     url = "https://member.bilibili.com/preupload"
     _data = s.get(url=url, params=param).text
@@ -41,8 +42,9 @@ def uploadFile(cookie:dict, videoPath:str) -> str:
     endpoint = _data["endpoint"]
     auth = _data["auth"]
     logger.info("preupload done")
-    #get upload id
-    data_url = "https:{1}/ugc/{0}?uploads&output=json".format(upos_uri, endpoint)
+    # get upload id
+    data_url = "https:{1}/ugc/{0}?uploads&output=json".format(
+        upos_uri, endpoint)
     s.headers.update({"X-Upos-Auth": auth})
     while True:
         try:
@@ -104,59 +106,68 @@ def uploadFile(cookie:dict, videoPath:str) -> str:
     return upos_uri
 
 
-def uploadWithOldBvid(cookie:dict, uploadInfo:dict, videoPath:str) -> str:
+def uploadWithOldBvid(cookie: dict, uploadInfo: dict, videoPath: str) -> str:
     upos_uri = uploadFile(cookie, videoPath)
     s = tool.Session()
     s.cookies.update(cookie)
 
-    url = "https://member.bilibili.com/x/vu/web/edit?csrf=" + cookie["bili_jct"]
+    url = "https://member.bilibili.com/x/vu/web/edit?csrf=" + \
+        cookie["bili_jct"]
     # s.headers.pop("X-Upos-Auth")
-    _rs = s.get("https://member.bilibili.com/x/web/archive/view?bvid={}".format(uploadInfo["bvid"])).json()["data"]
+    _rs = s.get("https://member.bilibili.com/x/web/archive/view?bvid={}".format(
+        uploadInfo["bvid"])).json()["data"]
     # logger.debug(json.dumps(_rs["videos"]))
     videos = []
     for i in _rs["videos"]:
-        if len(i['reject_reason']) > 0: # 判断视频是否有错误，比如撞车、解码错误、违法违规等
-            logger.debug("{}-{}:{}".format(i["aid"], i["cid"], i["reject_reason"]))
+        if len(i['reject_reason']) > 0:  # 判断视频是否有错误，比如撞车、解码错误、违法违规等
+            logger.debug(
+                "{}-{}:{}".format(i["aid"], i["cid"], i["reject_reason"]))
             continue
         videos.append({"filename": i["filename"], "title": i["title"]})
-    videos.append({"filename": upos_uri.split(".")[0], "title": uploadInfo["title"][0:min(79, len(uploadInfo["title"]))], "desc": uploadInfo["id"]})
+    videos.append({"filename": upos_uri.split(".")[0],
+                   "title": uploadInfo["title"][0:min(79, len(uploadInfo["title"]))],
+                   "desc": uploadInfo["id"]
+                   })
     send_data = {"copyright": 2, "videos": videos,
-                    "source": _rs["archive"]["source"],
-                    "tid": _rs["archive"]["tid"],
-                    "cover": _rs["archive"]["cover"].split(":")[-1],
-                    "title": _rs["archive"]["title"],
-                    "tag": _rs["archive"]["tag"],
-                    "desc_format_id": 0,
-                    "desc": _rs["archive"]["desc"],
-                    "dynamic": _rs["archive"]["dynamic"],
-                    "subtitle": {
-                        "open": 0,
-                        "lan": ""
-                    },
-                    "bvid": uploadInfo["bvid"],
-                    "handle_staff": False,
-                }
+                 "source": _rs["archive"]["source"],
+                 "tid": _rs["archive"]["tid"],
+                 "cover": _rs["archive"]["cover"].split(":")[-1],
+                 "title": _rs["archive"]["title"],
+                 "tag": _rs["archive"]["tag"],
+                 "desc_format_id": 0,
+                 "desc": _rs["archive"]["desc"],
+                 "dynamic": _rs["archive"]["dynamic"],
+                 "subtitle": {
+                     "open": 0,
+                     "lan": ""
+                 },
+                 "bvid": uploadInfo["bvid"],
+                 "handle_staff": False,
+                 }
     logger.debug(json.dumps(send_data))
     # s.headers.update({"Content-Type": "application/json;charset=UTF-8"})
     res = s.post(url=url, json=send_data).text
     logger.debug(res)
     return res
 
-def uploadWithNewBvid(cookie:dict, uploadInfo:dict, videoPath:str):
+
+def uploadWithNewBvid(cookie: dict, uploadInfo: dict, videoPath: str):
     upos_uri = uploadFile(cookie, videoPath)
     s = tool.Session()
     s.cookies.update(cookie)
     csrf = cookie["bili_jct"]
+
     def cover(csrf, uploadInfo):
         vid = uploadInfo["id"]
         __url = "https://member.bilibili.com/x/vu/web/cover/up"
         __imgURL = "https://i1.ytimg.com/vi/{}/maxresdefault.jpg"
-        __send = {"cover": "data:image/jpeg;base64," +\
-                    base64.b64encode(s.get(__imgURL.format(vid), useProxy=True).content).decode(),
-                    "csrf": csrf
+        __rs = s.get(__imgURL.format(vid), useProxy=True, wantStatusCode=200)
+        __send = {"cover": "data:image/jpeg;base64," +
+                  base64.b64encode(__rs.content).decode(),
+                  "csrf": csrf
                   }
         __res = s.post(url=__url, data=__send).json()
-        
+
         return __res["data"]["url"].replace("http:", "").replace("https:", "")
 
     url = "https://member.bilibili.com/x/vu/web/add?csrf=" + csrf
@@ -164,21 +175,21 @@ def uploadWithNewBvid(cookie:dict, uploadInfo:dict, videoPath:str):
     _data = s.get("https://member.bilibili.com/x/geetest/pre/add").text
     logger.debug(_data)
     send_data = {"copyright": 2, "videos": [{"filename": upos_uri.split(".")[0],
-                                                "title": uploadInfo["title"],
-                                                "desc": ""}],
-                    "source": "https://www.youtube.com/watch?v=" + uploadInfo["id"],
-                    "tid": int(uploadInfo["tid"]),
-                    "cover": cover(csrf, uploadInfo),
-                    "title": uploadInfo["ptitle"],
-                    "tag": ','.join(uploadInfo["tags"]),
-                    "desc_format_id": 0,
-                    "desc": uploadInfo["desc"],
-                    "dynamic": "#" + "##".join(uploadInfo["tags"]) + "#",
-                    "subtitle": {
+                                             "title": uploadInfo["title"],
+                                             "desc": ""}],
+                 "source": "https://www.youtube.com/watch?v=" + uploadInfo["id"],
+                 "tid": int(uploadInfo["tid"]),
+                 "cover": cover(csrf, uploadInfo),
+                 "title": uploadInfo["ptitle"],
+                 "tag": ','.join(uploadInfo["tags"]),
+                 "desc_format_id": 0,
+                 "desc": uploadInfo["desc"],
+                 "dynamic": "#" + "##".join(uploadInfo["tags"]) + "#",
+                 "subtitle": {
                         "open": 0,
                         "lan": ""
-                    }
-                }
+    }
+    }
     logger.debug(json.dumps(send_data))
     # s.headers.update({"Content-Type": "application/json;charset=UTF-8"})
     res = s.post(url=url, json=send_data).text
