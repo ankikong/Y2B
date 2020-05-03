@@ -107,7 +107,8 @@ class Session(requests.Session):
             except Exception as e:
                 logger.debug(str(e) + ",retrying......")
             time.sleep(self.retryDelay)
-        logger.error("network error, all retry failed")
+        logger.error("network, {} {} want[{}]".format(
+            method, url, wantStatusCode))
         raise Exception("check network status")
 
     def get(self, url, useProxy: bool = False, wantStatusCode: int = None, **args) -> requests.models.Response:
