@@ -230,7 +230,7 @@ def getVideoUrl3(vid):
 
 
 def getVideoUrl(vid):
-    func = [getVideoUrl1, getVideoUrl2, getVideoUrl3]
+    func = [getVideoUrl3, getVideoUrl2, getVideoUrl1]
     for i in func:
         try:
             rs = i(vid)
