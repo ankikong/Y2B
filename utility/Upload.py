@@ -7,7 +7,6 @@ import base64
 import time
 import urllib3
 import logging
-from utility.getVideo import GetVideo
 from utility import tool
 logger = logging.getLogger("fileLogger")
 urllib3.disable_warnings()
