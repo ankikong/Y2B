@@ -2,6 +2,8 @@
 
 把Youtube上的视频转投到哔哩哔哩
 
+交流QQ群：849883545
+
 ## 食用方法
 
 1. 先执行`pip install -r requirements.txt`,然后再执行`python init.py`
