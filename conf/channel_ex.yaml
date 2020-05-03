@@ -57,5 +57,5 @@ TED:
   pages: 1
   hd: true
   countPerPage: 50
-  multipart: 1
+  multipart: true
   bvid: BV1Mb411L7Fb

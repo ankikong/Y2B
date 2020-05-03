@@ -127,20 +127,33 @@ def dealURLs(urls, hd):
     rs = {}
     if hd:
         for i in urls:
-            if "itag=137" in i:  # 1080P
+            # 1080P60F without audio
+            if "itag=299" in i and rs.get("vd", -1) < 299:
                 rs["vURL"] = i
-            if "itag=141" in i:  # 256k
+                rs["vd"] = 299
+            # 1080P without audio
+            if "itag=137" in i and rs.get("vd", -1) < 137:
+                rs["vURL"] = i
+                rs["vd"] = 137
+            # audio:256k
+            if "itag=141" in i and rs.get("sd", -1) < 141:
                 rs["sURL"] = i
-                rs["sd"] = 10
-            if "itag=140" in i and rs.get("sURL", -1) < 9:  # 128k
+                rs["sd"] = 141
+            # audio:128k
+            if "itag=140" in i and rs.get("sd", -1) < 140:
                 rs["sURL"] = i
-            if "itag=139" in i and rs.get("sURL", -1) < 8:  # 48k
+                rs["sd"] = 140
+            # audio:48k
+            if "itag=139" in i and rs.get("sd", -1) < 139:
                 rs["sURL"] = i
+                rs["sd"] = 139
     if not hd or rs.get("vURL") is None or rs.get("sURL") is None:
         rs.pop("sURL")
         for i in urls:
+            # 720P with audio
             if "itag=22" in i:
                 rs["vURL"] = i
+            # 360P with audio
             if "itag=18" in i and rs.get("vURL") is None:
                 rs["vURL"] = i
     return rs
