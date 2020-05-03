@@ -10,14 +10,9 @@ from pypinyin import lazy_pinyin, Style
 from utility import tool
 api = "https://www.youtube.com/api/timedtext?lang={}&v={}&fmt=srv1"
 # fmt = ["zh-CN", "zh-TW", "en"]
-parser = tool.getSettingConf()
-header = dict(parser.items("BiliHeader"))
 
-s = requests.session()
-s.headers.update(header)
-db = sqlite3.connect("data/data.db")
-cur = db.cursor()
-# csrf = re.findall("bili_jct=(.*?);", header['cookie'])[0]
+
+__s = tool.Session()
 logger = logging.getLogger("fileLogger")
 
 
@@ -57,19 +52,19 @@ def to_bili(sou):
 
 
 def get_sub(video_id, lan):
-    proxy = dict(parser.items("Proxy"))
     _url = api.format(lan.replace("-US", ""), video_id)
-    _sou = s.get(url=_url, proxies=proxy).text
+    _sou = __s.get(url=_url, useProxy=True).text
     if len(_sou) == 0:
         return None
     _return = to_bili(_sou)
     return _return
 
 
-def send_subtitle(aid, lan, cid, cookie, fix=False, vid=None, add=None):
+def send_subtitle(bvid, lan, cid, cookie, fix=False, vid=None, add=None):
     # cid = s.get("https://api.bilibili.com/x/web-interface/view?aid={}".format(aid)).json()["data"]["cid"]
     _api = "https://api.bilibili.com/x/v2/dm/subtitle/draft/save"
     csrf = cookie["bili_jct"]
+    s = tool.Session()
     s.cookies.update(cookie)
     if not fix:
         sou = get_sub(vid, lan)
@@ -79,7 +74,7 @@ def send_subtitle(aid, lan, cid, cookie, fix=False, vid=None, add=None):
         return False
     send_data = {"type": 1,
                  "oid": cid,
-                 "aid": aid,
+                 "bvid": bvid,
                  "lan": lan,
                  "data": sou,
                  "submit": "true",
@@ -92,14 +87,15 @@ def send_subtitle(aid, lan, cid, cookie, fix=False, vid=None, add=None):
     # s.verify = False
     _res = s.post(url=_api, data=send_data).json()
     if _res["code"] != 0:
-        logger.error(str(aid) + json.dumps(_res))
+        logger.error(str(bvid) + json.dumps(_res))
         return False
-    logger.info("subtitle success: {}".format(aid))
+    logger.info("subtitle success: {}".format(bvid))
     return True
 
 def fix_sub(cookie):
     import time
     csrf = cookie["bili_jct"]
+    s = tool.Session()
     s.cookies.update(cookie)
     wait_api = "https://api.bilibili.com/x/v2/dm/subtitle/search/author/list?status=3&page=1&size=100"
     res = s.get(wait_api).json()["data"]["subtitles"]
@@ -114,7 +110,7 @@ def fix_sub(cookie):
                 sub = sub.replace(i, "".join(lazy_pinyin(i.replace('#', ""), style=Style.TONE)))
             else:
                 sub = sub.replace(i, "#".join(i))
-        if send_subtitle(_["aid"], lan=_["lan"], cid=_["oid"], cookie=cookie, fix=True, add=sub):
+        if send_subtitle(_["bvid"], lan=_["lan"], cid=_["oid"], cookie=cookie, fix=True, add=sub):
             res = s.post("https://api.bilibili.com/x/v2/dm/subtitle/del", 
                                 data={"oid": _["oid"], "csrf": csrf, "subtitle_id": _["id"]}
                             ).json()
