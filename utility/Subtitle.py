@@ -37,7 +37,8 @@ def to_bili(sou):
         if _.text is None:
             continue
         _sub = unescape(_.text)
-        _sub = re.sub("\\[Music\\]|\\[Applause\\]|\\[Laughter\\]", "", _sub).replace("\n", " ")
+        _sub = re.sub("\\[Music\\]|\\[Applause\\]|\\[Laughter\\]",
+                      "", _sub).replace("\n", " ")
         _per["from"], _per["to"], _per["content"] = start, end, _sub
         last_json = _per.copy()
         _bili["body"].append(last_json)
@@ -92,6 +93,7 @@ def send_subtitle(bvid, lan, cid, cookie, fix=False, vid=None, add=None):
     logger.info("subtitle success: {}".format(bvid))
     return True
 
+
 def fix_sub(cookie):
     import time
     csrf = cookie["bili_jct"]
@@ -100,27 +102,29 @@ def fix_sub(cookie):
     wait_api = "https://api.bilibili.com/x/v2/dm/subtitle/search/author/list?status=3&page=1&size=100"
     res = s.get(wait_api).json()["data"]["subtitles"]
     for _ in res:
-        tmp_url = "https://api.bilibili.com/x/v2/dm/subtitle/show?oid={}&subtitle_id={}".format(_['oid'], _["id"])
+        tmp_url = "https://api.bilibili.com/x/v2/dm/subtitle/show?oid={}&subtitle_id={}"
+        tmp_url = tmp_url.format(_['oid'], _["id"])
         data = s.get(tmp_url).json()["data"]
         reject_comment = data["reject_comment"].split(':')[-1].split(',')
         subtitle_url = data["subtitle_url"]
         sub = s.get(subtitle_url).text
         for i in reject_comment:
             if "zh" in _["lan"]:
-                sub = sub.replace(i, "".join(lazy_pinyin(i.replace('#', ""), style=Style.TONE)))
+                sub = sub.replace(i, "".join(lazy_pinyin(
+                    i.replace('#', ""), style=Style.TONE)))
             else:
                 sub = sub.replace(i, "#".join(i))
         if send_subtitle(_["bvid"], lan=_["lan"], cid=_["oid"], cookie=cookie, fix=True, add=sub):
-            res = s.post("https://api.bilibili.com/x/v2/dm/subtitle/del", 
-                                data={"oid": _["oid"], "csrf": csrf, "subtitle_id": _["id"]}
-                            ).json()
+            res = s.post("https://api.bilibili.com/x/v2/dm/subtitle/del",
+                         data={"oid": _["oid"], "csrf": csrf,
+                               "subtitle_id": _["id"]}
+                         ).json()
             if res["code"] != 0:
                 logger.error(res["message"])
             else:
                 logger.info("fix done:" + str(_['oid']))
         time.sleep(10)
         # break
-
 
 
 if __name__ == "__main__":

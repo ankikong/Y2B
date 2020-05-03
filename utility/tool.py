@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import json, time
+import json
+import time
 import requests
 from base64 import b64encode
 from Crypto.Cipher import PKCS1_v1_5
@@ -8,7 +9,8 @@ from Crypto.PublicKey import RSA
 from hashlib import md5
 from urllib import parse
 import os
-import logging, logging.config
+import logging
+import logging.config
 # pycryptodome pycrypto
 
 
@@ -22,28 +24,36 @@ _channelConf = "conf/channel.yaml"
 _loggingConf = "conf/logging.yaml"
 _dbPath = "data/data.db"
 
+
 class Config:
     SETTING = _settingConf
     CHANNEL = _channelConf
     LOGGING = _loggingConf
+
     def __init__(self, file):
         self.__select = file
         with open(file, encoding="utf8") as tmp:
-            self.data:dict = yaml.load(tmp.read(), Loader=yaml.FullLoader)
+            self.data: dict = yaml.load(tmp.read(), Loader=yaml.FullLoader)
         if file == Config.LOGGING:
-            _tmp:str = self.data["handlers"]["file"]["filename"]
-            self.data["handlers"]["file"]["filename"] = _tmp.format(time.strftime("%Y-%m-%d"))
+            _tmp: str = self.data["handlers"]["file"]["filename"]
+            self.data["handlers"]["file"]["filename"] = _tmp.format(
+                time.strftime("%Y-%m-%d"))
+
     def __getitem__(self, k):
         return self.data[k]
+
     def __setitem__(self, k, v):
         self.data[k] = v
+
     def get(self, k, val=None):
         return self.data.get(k, val)
+
     def save(self):
         if self.__select == Config.LOGGING:
             return
         with open(self.__select, "w", encoding="utf8") as tmp:
             yaml.dump(self.data, tmp)
+
 
 loggingConf = Config(Config.LOGGING)
 settingConf = Config(Config.SETTING)
@@ -60,14 +70,15 @@ def getDB():
 
 # my requests session start
 
+
 class Session(requests.Session):
 
     def __init__(self):
         super(Session, self).__init__()
         self.proxy = settingConf["Proxy"]
         self.timeouts: tuple = (120, 240)
-        self.retryDelay: int = 1
-        self.retry: int = 4
+        self.retryDelay: int = 2
+        self.retry: int = 6
         self.headers.update({
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.129 Safari/537.36",
             "accept-language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6",
@@ -77,7 +88,7 @@ class Session(requests.Session):
             "Sec-Fetch-Site": "same-site"
         })
 
-    def req(self, method:str, url:str, useProxy:bool=False, **args) -> requests.models.Response:
+    def req(self, method: str, url: str, useProxy: bool = False, wantStatusCode: int = None, **args) -> requests.models.Response:
         args = args.copy()
         if useProxy:
             args["proxies"] = self.proxy
@@ -90,24 +101,28 @@ class Session(requests.Session):
             args["timeout"] = self.timeouts
         for _ in range(self.retry):
             try:
-                return self.request(method, url, **args)
+                rs = self.request(method, url, **args)
+                if wantStatusCode is None or rs.status_code == wantStatusCode:
+                    return rs
             except Exception as e:
                 logger.debug(str(e) + ",retrying......")
-                time.sleep(self.retryDelay)
+            time.sleep(self.retryDelay)
+        logger.error("network error, all retry failed")
         raise Exception("check network status")
 
-    def get(self, url, useProxy:bool=False, **args) -> requests.models.Response:
-        return self.req("GET", url, useProxy, **args)
+    def get(self, url, useProxy: bool = False, wantStatusCode: int = None, **args) -> requests.models.Response:
+        return self.req("GET", url, useProxy, wantStatusCode, **args)
 
-    def post(self, url, useProxy:bool=False, **args) -> requests.models.Response:
-        return self.req("POST", url, useProxy, **args)
+    def post(self, url, useProxy: bool = False, wantStatusCode: int = None, **args) -> requests.models.Response:
+        return self.req("POST", url, useProxy, wantStatusCode, **args)
 
-    def put(self, url, useProxy:bool=False, **args) -> requests.models.Response:
-        return self.req("PUT", url, useProxy, **args)
+    def put(self, url, useProxy: bool = False, wantStatusCode: int = None, **args) -> requests.models.Response:
+        return self.req("PUT", url, useProxy, wantStatusCode, **args)
 
 # my requests session end
 
 # download tool start
+
 
 class DownloadManager:
     def __init__(self, url, proxy={}, dirs="E:/", files=None, jsonrpc="http://localhost:6800/jsonrpc"):
@@ -131,11 +146,11 @@ class DownloadManager:
             "method": "aria2.addUri",
             "id": 1,
             "params": [[self.url],
-                {
-                    "max-connection-per-server": "16",
-                    "out": self.files,
-                    **proxyConv
-                }
+                       {
+                "max-connection-per-server": "16",
+                "out": self.files,
+                **proxyConv
+            }
             ]
         }
         # print(json.dumps(data))
@@ -145,7 +160,7 @@ class DownloadManager:
 
     def _post(self, json):
         return self._session.post(url=self.jsonrpc, json=json).json()
-    
+
     def telStatus(self):
         data = {
             "jsonrpc": "2.0",
@@ -154,7 +169,7 @@ class DownloadManager:
             "params": [str(self._gid)]
         }
         return self._post(data)
-    
+
     def telFileSize(self):
         return int(self.telStatus()["result"]["totalLength"])
 
@@ -170,7 +185,7 @@ class DownloadManager:
         if rs["status"] == 'error':
             return -1
         return -1
-    
+
     def waitForFinishing(self):
         while True:
             rs = self.telFinished()
@@ -180,13 +195,13 @@ class DownloadManager:
                 return -1
             else:
                 time.sleep(10)
-    
+
     def getFile(self):
         if self._fd is None:
             filePath = self.telFileLocate()
             self._fd = open(filePath, "rb")
         return self._fd
-    
+
     def close(self, deleteFile=False):
         if self._fd is not None:
             self._fd.close()
@@ -196,8 +211,10 @@ class DownloadManager:
         filePath = self.telFileLocate()
         if os.path.exists(filePath):
             os.remove(filePath)
+
     def getDirs(self):
-        rs = self._post({"jsonrpc":"2.0","method":"aria2.getGlobalOption","id":1,"params":[]})
+        rs = self._post(
+            {"jsonrpc": "2.0", "method": "aria2.getGlobalOption", "id": 1, "params": []})
         return (str(rs["result"]["dir"]).replace("\\", "/") + "/").replace("//", "/")
 # download tool end
 
@@ -230,14 +247,15 @@ header = {
 
 
 def getSign(tmp):
-	if type(tmp) is dict:
-		ttmp = []
-		for i in sorted(tmp.keys()):
-			ttmp.append(i + "=" + str(tmp[i]))
-		tmp = "&".join(ttmp)
-	return tmp + "&sign=" + md5((tmp + APP_SECRET).encode("utf-8")).hexdigest()
+    if type(tmp) is dict:
+        ttmp = []
+        for i in sorted(tmp.keys()):
+            ttmp.append(i + "=" + str(tmp[i]))
+        tmp = "&".join(ttmp)
+    return tmp + "&sign=" + md5((tmp + APP_SECRET).encode("utf-8")).hexdigest()
 
-def getSign2(params:dict) -> dict:
+
+def getSign2(params: dict) -> dict:
     tmp = []
     for i in params:
         tmp.append("{}={}".format(i, parse.quote_plus(str(params[i]))))
@@ -245,6 +263,7 @@ def getSign2(params:dict) -> dict:
     tmp = "&".join(tmp)
     params["sign"] = md5((tmp + APP_SECRET).encode("utf-8")).hexdigest()
     return params
+
 
 class AccountManager:
 
@@ -258,8 +277,8 @@ class AccountManager:
         self.cookie = None
 
     @staticmethod
-    def loginWithIdAndPwd(userid,password):
-        baseurl="https://passport.bilibili.com/api/v3/oauth2/login"
+    def loginWithIdAndPwd(userid, password):
+        baseurl = "https://passport.bilibili.com/api/v3/oauth2/login"
         url = 'https://passport.bilibili.com/api/oauth2/getKey'
 
         s = requests.Session()
@@ -280,7 +299,7 @@ class AccountManager:
         # header["Content-Type"] = 'application/x-www-form-urlencoded; charset=UTF-8'
         token = s.post(url, params=keyData, proxies=proxy).json()["data"]
         key = token['key'].encode()
-        _hash=token['hash'].encode()
+        _hash = token['hash'].encode()
 
         key = RSA.importKey(key)
         cipher = PKCS1_v1_5.new(key)
@@ -320,7 +339,8 @@ class AccountManager:
         pwd = self.__setting[self.__profileName].get("Password")
         if usr is None or pwd is None:
             # 配置文件没有账号密码，无法登录
-            raise Exception("Please input you account and password into " + _settingConf)
+            raise Exception(
+                "Please input you account and password into " + _settingConf)
         token, reToken = AccountManager.loginWithIdAndPwd(usr, pwd)
         self.__setting[self.__profileName]["token"] = token
         self.__setting[self.__profileName]["refreshtoken"] = reToken
@@ -334,7 +354,8 @@ class AccountManager:
         """ Postpone expiration; 推迟token的过期时间(续命)
         """
         url = "https://passport.bilibili.com/api/oauth2/refreshToken"
-        params = {"access_token": token, "refresh_token": refreshtoken, "appkey": APP_KEY}
+        params = {"access_token": token,
+                  "refresh_token": refreshtoken, "appkey": APP_KEY}
         params = getSign(params)
         header["Content-Type"] = 'application/x-www-form-urlencoded; charset=UTF-8'
         res = requests.post(url, data=params, headers=header).text
@@ -365,7 +386,7 @@ class AccountManager:
             res = self.__getPersonInfo()
             self.mid = res["data"]["mid"]
         return self.mid
-    
+
     def getToken(self):
         """ check whether token is expired and return token. If expired,relogin.
             检查配置文件中的token是否过期，并返回token。如果过期了的话，会重新登录
@@ -380,10 +401,11 @@ class AccountManager:
         _data["uname"] = rs["data"]["uname"]
         _data["mid"] = rs["data"]["mid"]
         return _data
-    
+
     def __getCookie(self):
         if int(time.time()) - self.__setting[self.__profileName].get("ts", 0) > 1e5:
-            url = "https://passport.bilibili.com/api/login/sso?" + getSign({"access_key": self.getToken(), "appkey": APP_KEY})
+            url = "https://passport.bilibili.com/api/login/sso?" + \
+                getSign({"access_key": self.getToken(), "appkey": APP_KEY})
             # print(url)
             s = requests.session()
             s.get(url)
@@ -404,6 +426,7 @@ class AccountManager:
         return self.cookie
 
 # verify tool end
+
 
 if __name__ == "__main__":
     ac = AccountManager("Anki")
