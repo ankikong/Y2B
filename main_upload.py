@@ -13,15 +13,13 @@ def run():
     account = tool.AccountManager("Anki")
     for i in work:
         logger.info("start:" + json.dumps(i))
-        vmer = getVideo.VideoManager(i["id"], i["hd"]=="1")
+        vmer = getVideo.VideoManager(i["id"], i["hd"])
         data = vmer.getVideo()
         if data[0]:
-            # res = Upload3.upload(i, account, dmer)
-            if i["multipart"] == "1":
+            if i["multipart"]:
                 res = Upload.uploadWithOldBvid(account.getCookies(), i, data[1])
             else:
                 res = Upload.uploadWithNewBvid(account.getCookies(), i, data[1])
-            # res = Upload3.upload(account.getCookies(), i, dmer.telFileLocate())
             if type(res) == bool:
                 continue
             res = json.loads(res)

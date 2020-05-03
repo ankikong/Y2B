@@ -24,14 +24,14 @@ except:
 
 db.commit()
 
-if not os.path.exists("conf/channel.conf"):
-    with open("conf/channel.conf", "w", encoding="utf8") as out:
-        with open("conf/channel_ex.conf", "r", encoding="utf8") as ins:
+if not os.path.exists("conf/channel.yaml"):
+    with open("conf/channel.yaml", "w", encoding="utf8") as out:
+        with open("conf/channel_ex.yaml", "r", encoding="utf8") as ins:
             out.write(ins.read())
 
-if not os.path.exists("conf/setting.conf"):
-    with open("conf/setting.conf", "w", encoding="utf8") as out:
-        with open("conf/setting_ex.conf", "r", encoding="utf8") as ins:
+if not os.path.exists("conf/setting.yaml"):
+    with open("conf/setting.yaml", "w", encoding="utf8") as out:
+        with open("conf/setting_ex.yaml", "r", encoding="utf8") as ins:
             out.write(ins.read())
 
 

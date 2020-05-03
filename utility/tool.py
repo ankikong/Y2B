@@ -14,29 +14,47 @@ import logging, logging.config
 
 # config tool start
 
-from configparser import ConfigParser
+import yaml
 import sqlite3
 
-settingConf = "conf/setting.conf"
-channelConf = "conf/channel.conf"
-dbPath = "data/data.db"
+_settingConf = "conf/setting.yaml"
+_channelConf = "conf/channel.yaml"
+_loggingConf = "conf/logging.yaml"
+_dbPath = "data/data.db"
 
-logging.config.fileConfig(settingConf)
+class Config:
+    SETTING = _settingConf
+    CHANNEL = _channelConf
+    LOGGING = _loggingConf
+    def __init__(self, file):
+        self.__select = file
+        with open(file, encoding="utf8") as tmp:
+            self.data:dict = yaml.load(tmp.read(), Loader=yaml.FullLoader)
+        if file == Config.LOGGING:
+            _tmp:str = self.data["handlers"]["file"]["filename"]
+            self.data["handlers"]["file"]["filename"] = _tmp.format(time.strftime("%Y-%m-%d"))
+    def __getitem__(self, k):
+        return self.data[k]
+    def __setitem__(self, k, v):
+        self.data[k] = v
+    def get(self, k, val=None):
+        return self.data.get(k, val)
+    def save(self):
+        if self.__select == Config.LOGGING:
+            return
+        with open(self.__select, "w", encoding="utf8") as tmp:
+            yaml.dump(self.data, tmp)
+
+loggingConf = Config(Config.LOGGING)
+settingConf = Config(Config.SETTING)
+channelConf = Config(Config.CHANNEL)
+
+logging.config.dictConfig(loggingConf.data)
 logger = logging.getLogger("fileLogger")
 
-def _run(file):
-    parser = ConfigParser()
-    content = parser.read(file, encoding="utf8")
-    return parser, content
-
-def getSettingConf():
-    return _run(settingConf)[0]
-
-def getChannelConf():
-    return _run(channelConf)
 
 def getDB():
-    return sqlite3.connect(dbPath)
+    return sqlite3.connect(_dbPath)
 
 # config tool end
 
@@ -46,8 +64,7 @@ class Session(requests.Session):
 
     def __init__(self):
         super(Session, self).__init__()
-        parser = getSettingConf()
-        self.proxy = dict(parser.items("Proxy"))
+        self.proxy = settingConf["Proxy"]
         self.timeouts: tuple = (120, 240)
         self.retryDelay: int = 1
         self.retry: int = 4
@@ -59,8 +76,6 @@ class Session(requests.Session):
             "sec-fetch-mode": "cors",
             "Sec-Fetch-Site": "same-site"
         })
-        parser = getSettingConf()
-        self.proxy = dict(parser.items("Proxy")) 
 
     def req(self, method:str, url:str, useProxy:bool=False, **args) -> requests.models.Response:
         args = args.copy()
@@ -237,9 +252,8 @@ class AccountManager:
         """ accountName means the AccountName in the setting.conf
             这里的accountName就是setting.conf里面的AccountName
         """
-        self.__setting = getSettingConf()
+        self.__setting = settingConf
         self.__profileName = accountName
-        self.__data = dict(self.__setting.items(accountName))
         self.mid = None
         self.cookie = None
 
@@ -248,9 +262,9 @@ class AccountManager:
         baseurl="https://passport.bilibili.com/api/v3/oauth2/login"
         url = 'https://passport.bilibili.com/api/oauth2/getKey'
 
-        s = Session()
+        s = requests.Session()
         # s.verify = False
-        # s.headers.update(header)
+        s.headers.update(header)
 
         keyItem = {
             "appkey": APP_KEY,
@@ -302,19 +316,18 @@ class AccountManager:
         """
         if self.checkIsLogin():
             return
-        parser = getSettingConf()
-        usr = self.__data.get("account")
-        pwd = self.__data.get("password")
+        usr = self.__setting[self.__profileName].get("Account")
+        pwd = self.__setting[self.__profileName].get("Password")
         if usr is None or pwd is None:
             # 配置文件没有账号密码，无法登录
-            raise Exception("Please input you account and password into " + settingConf)
+            raise Exception("Please input you account and password into " + _settingConf)
         token, reToken = AccountManager.loginWithIdAndPwd(usr, pwd)
-        self.__data["token"] = token
-        self.__data["refreshtoken"] = reToken
-        parser.set(self.__profileName, "token", token)
-        parser.set(self.__profileName, "refreshtoken", reToken)
-        with open(settingConf, "w") as _tmp:
-            parser.write(_tmp)
+        self.__setting[self.__profileName]["token"] = token
+        self.__setting[self.__profileName]["refreshtoken"] = reToken
+        self.save()
+
+    def save(self):
+        self.__setting.save()
 
     @staticmethod
     def refreshTokenWithTokenAndRToken(token, refreshtoken):
@@ -330,11 +343,11 @@ class AccountManager:
     def refreshToken(self):
         """ Postpone expiration; 推迟token的过期时间(续命)
         """
-        token, reToken = self.__data["token"], self.__data["refreshtoken"]
+        token, reToken = self.__setting[self.__profileName]["token"], self.__setting[self.__profileName]["refreshtoken"]
         return AccountManager.refreshTokenWithTokenAndRToken(token, reToken)
 
     def __getPersonInfo(self):
-        token = self.__data.get("token", "")
+        token = self.__setting[self.__profileName].get("token", "")
         url = "https://api.bilibili.com/x/web-interface/nav?access_key=" + token
         res = requests.get(url).json()
         return res
@@ -359,7 +372,7 @@ class AccountManager:
         """
         self.login()
         self.refreshToken()
-        return self.__data["token"]
+        return self.__setting[self.__profileName]["token"]
 
     def userInformation(self):
         _data = {}
@@ -369,11 +382,18 @@ class AccountManager:
         return _data
     
     def __getCookie(self):
-        url = "https://passport.bilibili.com/api/login/sso?" + getSign({"access_key": self.getToken(), "appkey": APP_KEY})
-        # print(url)
-        s = requests.session()
-        s.get(url)
-        return s.cookies.get_dict()
+        if int(time.time()) - self.__setting[self.__profileName].get("ts", 0) > 1e5:
+            url = "https://passport.bilibili.com/api/login/sso?" + getSign({"access_key": self.getToken(), "appkey": APP_KEY})
+            # print(url)
+            s = requests.session()
+            s.get(url)
+            tmp = s.cookies.get_dict()
+            self.__setting[self.__profileName]["cookie"] = tmp
+            self.__setting[self.__profileName]["ts"] = int(time.time())
+            self.save()
+            return tmp
+        else:
+            return self.__setting[self.__profileName]["cookie"]
 
     def getCookies(self):
         """ use token to get cookies
@@ -386,11 +406,11 @@ class AccountManager:
 # verify tool end
 
 if __name__ == "__main__":
-    # ac = AccountManager("Anki")
-    # print(ac.getToken())
-    # print(ac.userInformation())
-    # print(ac.getMid())
-    # cookie = ac.getCookies()
+    ac = AccountManager("Anki")
+    print(ac.getToken())
+    print(ac.userInformation())
+    print(ac.getMid())
+    cookie = ac.getCookies()
     # rs = requests.get("https://api.bilibili.com/x/web-interface/nav", cookies=cookie).text
     # print(rs)
     # print(Session.get("https://baidu.com", proxies={"https":"http://127.0.0.1:8888"}, verify=False))

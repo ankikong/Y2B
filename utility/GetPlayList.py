@@ -5,22 +5,19 @@ from utility import tool
 
 
 def get_work_list():
-    parser = tool.getSettingConf()
-    api_key = parser.get("GoogleToken", "token")
-    db = sqlite3.connect("data/data.db")
+    api_key = tool.settingConf["GoogleToken"]
+    db = tool.getDB()
     _return = []
-    channel = tool.getChannelConf()[0]
+    channel = tool.channelConf
     s = tool.Session()
-    for i in channel:
-        if i == 'DEFAULT':
-            continue
-        settings = dict(channel.items(i))
+    for i in channel.data:
+        settings = channel[i]
         pages = int(settings["pages"])
         params = {
             "part": "snippet",
             "playlistId": settings["id"],
             "key": api_key,
-            "maxResults": settings["countperpage"],
+            "maxResults": settings["countPerPage"],
             "pageToken": None
         }
         for _ in range(pages):
@@ -47,7 +44,7 @@ def get_work_list():
                                                                      ptime=tmp_data["publishedAt"],
                                                                      surl="https://www.youtube.com/watch?v=" + video_id)
                 })
-                tmpRs["tags"] = tmpRs.get("tags", "").split(",")
+                # tmpRs["tags"] = tmpRs.get("tags", "").split(",")
 
                 ptitle = tmpRs.get("ptitle", "")
                 ptitle = ptitle[0:min(80, len(ptitle))]

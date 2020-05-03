@@ -35,6 +35,7 @@ def uploadFile(cookie:dict, videoPath:str) -> str:
     url = "https://member.bilibili.com/preupload"
     _data = s.get(url=url, params=param).text
     _data = json.loads(_data)
+    upload_size = _data["chunk_size"]
     upos_uri = _data["upos_uri"].replace("upos:/", "").replace("/ugc/", "")
     biz_id = _data["biz_id"]
     endpoint = _data["endpoint"]
@@ -53,7 +54,7 @@ def uploadFile(cookie:dict, videoPath:str) -> str:
             continue
     logger.info("get upload id done")
     # start upload
-    upload_size = 4 * 1024 * 1024
+    # upload_size = 8 * 1024 * 1024
     upload_url = "https:{0}/ugc/{1}".format(endpoint, upos_uri)
     total_chunk = math.ceil(file_size / upload_size)
     index = 1
@@ -109,7 +110,7 @@ def uploadWithOldBvid(cookie:dict, uploadInfo:dict, videoPath:str) -> str:
     url = "https://member.bilibili.com/x/vu/web/edit?csrf=" + cookie["bili_jct"]
     # s.headers.pop("X-Upos-Auth")
     _rs = s.get("https://member.bilibili.com/x/web/archive/view?bvid={}".format(uploadInfo["bvid"])).json()["data"]
-    logger.debug(json.dumps(_rs["videos"]))
+    # logger.debug(json.dumps(_rs["videos"]))
     videos = []
     for i in _rs["videos"]:
         if len(i['reject_reason']) > 0: # 判断视频是否有错误，比如撞车、解码错误、违法违规等

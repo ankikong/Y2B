@@ -237,11 +237,10 @@ class VideoManager:
                 pass
         if rs is None:
             return False, ""
-        parser = tool.getSettingConf()
-        proxy = dict(parser.items("Proxy"))
-        jsonrpc = parser.get("Aria", "jsonrpc")
-        ffmpegArgs = parser.get("FFMPEG", "args")
-        ffmpegPath = parser.get("FFMPEG", "path")
+        proxy = tool.settingConf["Proxy"]
+        jsonrpc = tool.settingConf["Aria"]["jsonrpc"]
+        ffmpegArgs = tool.settingConf["FFMPEG"]["args"]
+        ffmpegPath = tool.settingConf["FFMPEG"]["path"]
         cmd = ffmpegPath + ' -i "{}" -i "{}" ' + ffmpegArgs + ' "{}"'
         self._dmer1 = tool.DownloadManager(rs["vURL"], proxy=proxy, jsonrpc=jsonrpc, files=self.vid + "_v")
         self._dmer1.download()

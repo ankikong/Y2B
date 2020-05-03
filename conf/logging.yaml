@@ -1,0 +1,29 @@
+version: 1
+disable_existing_loggers: true
+formatters:
+  default:
+    format: "%(asctime)s %(filename)s[%(lineno)d] %(levelname)s: %(message)s"
+    datefmt: "%H:%M:%S"
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: default
+    stream: ext://sys.stdout
+  file:
+    class: logging.handlers.RotatingFileHandler
+    formatter: default
+    filename: logs/{}.log
+    maxBytes: 524288
+loggers:
+  file:
+    handlers: [file]
+    level: DEBUG
+  console:
+    handlers: [console]
+    level: DEBUG
+  fileLogger:
+    handlers: [file]
+    level: DEBUG
+root:
+  level: DEBUG
+  handler: [console]
