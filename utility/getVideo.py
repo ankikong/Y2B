@@ -32,10 +32,12 @@ class VideoManager:
         opt = {"logger": logger}
         if proxy is not None:
             opt["proxy"] = proxy.get("http")
-        ydl = youtube_dl.YoutubeDL(opt)
-        _tmpRs = ydl.extract_info(
-            "https://www.youtube.com/watch?v=" + self.vid, download=False)
-
+        try:
+            ydl = youtube_dl.YoutubeDL(opt)
+            _tmpRs = ydl.extract_info(
+                "https://www.youtube.com/watch?v=" + self.vid, download=False)
+        except:
+            return False, ""
         for i in _tmpRs["formats"]:
             rs[i["format_id"]] = i
 
@@ -60,7 +62,7 @@ class VideoManager:
                     break
 
         if urlv is None:
-            raise Exception("no video")
+            return False, ""
         cmd = ffmpegPath + ' -i "{}" -i "{}" ' + ffmpegArgs + ' "{}"'
 
         self._dmer1 = tool.DownloadManager(
