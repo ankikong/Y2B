@@ -19,61 +19,14 @@
 
 ## aria2c 参考配置
 
-``` conf
-enable-rpc=true
-disable-ipv6=false
-rpc-allow-origin-all=true
-rpc-listen-all=true
-#event-poll=select
-rpc-listen-port=6800
-#rpc-secret=44a70bf2-fbf5-42f2-93c6-96359e3e53ee
-#rpc-private-key=keys\server.key
-#rpc-certificate=keys\server.crt
-#rpc-secret=token
-#rpc-user=user
-#rpc-passwd=passgd
-
-dir=D:\Downloads\aria\
-disk-cache=128M
-#file-allocation=prealloc
-continue=true
-
-input-file=D:\APP\aria2\aria2.session
-save-session=D:\APP\aria2\aria2.session
-save-session-interval=30
-
-max-concurrent-downloads=1
-max-connection-per-server=16
-min-split-size=1M
-split=10
-max-overall-download-limit=0
-max-download-limit=0
-max-overall-upload-limit=0
-max-upload-limit=0
-allow-overwrite=true
-auto-file-renaming=true
-
-follow-torrent=true
-listen-port=51413
-bt-max-peers=55
-enable-dht=true
-enable-dht6=true
-dht-listen-port=6881-6999
-bt-enable-lpd=false
-enable-peer-exchange=true
-#bt-request-peer-speed-limit=50K
-peer-id-prefix=-UT2210-
-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36
-seed-ratio=1.0
-#force-save=false
-bt-hash-check-seed=true
-bt-seed-unverified=true
-bt-save-metadata=true
-
-```
+[aria.conf](./conf/aria.conf)
 
 ## 更新记录
 
+- 2020.05.03
+  - 迁移配置文件为yaml
+  - 修复封面丢失的问题
+  - 修复字幕投递
 - 2020.05.02
   - 增加自定义选项
   - 新增1080P
