@@ -8,12 +8,12 @@ import re
 import logging
 from pypinyin import lazy_pinyin, Style
 from utility import tool
+import time
 api = "https://www.youtube.com/api/timedtext?lang={}&v={}&fmt=srv1"
 # fmt = ["zh-CN", "zh-TW", "en"]
 
 
 __s = tool.Session()
-logger = logging.getLogger("fileLogger")
 
 
 def to_bili(sou):
@@ -62,7 +62,7 @@ def get_sub(video_id, lan):
 
 
 def send_subtitle(bvid, lan, cid, cookie, fix=False, vid=None, add=None):
-    # cid = s.get("https://api.bilibili.com/x/web-interface/view?aid={}".format(aid)).json()["data"]["cid"]
+    logger = tool.getLogger()
     _api = "https://api.bilibili.com/x/v2/dm/subtitle/draft/save"
     csrf = cookie["bili_jct"]
     s = tool.Session()
@@ -90,13 +90,13 @@ def send_subtitle(bvid, lan, cid, cookie, fix=False, vid=None, add=None):
     if _res["code"] != 0:
         logger.error(str(bvid) + json.dumps(_res))
         return False
-    logger.info("subtitle success BV[{}], Lan[{}], fix[{}], cid[{}]".format(
-        bvid, lan, fix, cid))
+    logger.info(
+        f"subtitle success BV[{bvid}], Lan[{lan}], fix[{fix}], cid[{cid}]")
     return True
 
 
 def fix_sub(cookie):
-    import time
+    logger = tool.getLogger()
     csrf = cookie["bili_jct"]
     s = tool.Session()
     s.cookies.update(cookie)
@@ -105,8 +105,7 @@ def fix_sub(cookie):
     if res is None:
         return
     for _ in res:
-        tmp_url = "https://api.bilibili.com/x/v2/dm/subtitle/show?oid={}&subtitle_id={}"
-        tmp_url = tmp_url.format(_['oid'], _["id"])
+        tmp_url = f"https://api.bilibili.com/x/v2/dm/subtitle/show?oid={_['oid']}&subtitle_id={_['id']}"
         data = s.get(tmp_url).json()["data"]
         reject_comment = data["reject_comment"].split(':')[-1].split(',')
         subtitle_url = data["subtitle_url"]
@@ -119,13 +118,14 @@ def fix_sub(cookie):
                 sub = sub.replace(i, "#".join(i))
         if send_subtitle(_["bvid"], lan=_["lan"], cid=_["oid"], cookie=cookie, fix=True, add=sub):
             res = s.post("https://api.bilibili.com/x/v2/dm/subtitle/del",
-                         data={"oid": _["oid"], "csrf": csrf,
+                         data={"oid": _["oid"],
+                               "csrf": csrf,
                                "subtitle_id": _["id"]}
                          ).json()
             if res["code"] != 0:
                 logger.error(res["message"])
             else:
-                logger.info("fix done:" + str(_['oid']))
+                logger.info(f"fix done:{_['oid']}")
         time.sleep(10)
         # break
 

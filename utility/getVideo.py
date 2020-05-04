@@ -1,16 +1,8 @@
-import requests
 import re
-import time
-import logging
-import platform
 import os
 from utility import tool
-from urllib import parse
-from html import unescape
-import re
 import youtube_dl
-
-logger = logging.getLogger("fileLogger")
+from urllib import parse
 
 
 class VideoManager:
@@ -29,14 +21,22 @@ class VideoManager:
         jsonrpc = tool.settingConf["Aria"]["jsonrpc"]
         ffmpegArgs = tool.settingConf["FFMPEG"]["args"]
         ffmpegPath = tool.settingConf["FFMPEG"]["path"]
+        logger = tool.getLogger()
         opt = {"logger": logger}
         if proxy is not None:
             opt["proxy"] = proxy.get("http")
+        _tmpRs: dict = None
         try:
             ydl = youtube_dl.YoutubeDL(opt)
             _tmpRs = ydl.extract_info(
-                "https://www.youtube.com/watch?v=" + self.vid, download=False)
+                f"https://www.youtube.com/watch?v={self.vid}", download=False)
         except:
+            logger.info(f"[{self.vid}] youtube-dl failed, try another way...")
+        try:
+            if _tmpRs is None:
+                _tmpRs = self.getVideoUrl()
+        except:
+            logger.info(f"[{self.vid}] another way failed, noway..")
             return False, ""
         for i in _tmpRs["formats"]:
             rs[i["format_id"]] = i
@@ -61,6 +61,7 @@ class VideoManager:
                     urlv = rs[i]["url"]
                     break
 
+        logger.info(f"vurl[{urlv is None}]; surl[{urls is None}]")
         if urlv is None:
             return False, ""
         cmd = ffmpegPath + ' -i "{}" -i "{}" ' + ffmpegArgs + ' "{}"'
@@ -96,6 +97,35 @@ class VideoManager:
         if self._dmer2 is not None:
             self._dmer2.deleteFile()
             os.remove(self._o)
+
+    # 无奈的加回来了
+    def getVideoUrl(self):
+        s = tool.Session()
+        s.headers.update({
+            "Sec-Fetch-Dest": "empty",
+            "X-Requested-With": "XMLHttpRequest",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36",
+            "Content-Type": "application/json;charset=UTF-8",
+            "Accept": "*/*",
+            "Origin": "https://www.y2b.xyz",
+            "Sec-Fetch-Site": "same-origin",
+            "Sec-Fetch-Mode": "cors",
+            "Referer": "https://www.y2b.xyz/",
+            "Accept-Language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6",
+        })
+        raw = s.get("https://www.y2b.xyz/", useProxy=True,
+                    wantStatusCode=200).text
+        csrf = re.findall('csrf_token = "([^"]+)', raw)[0]
+        s.headers.update({
+            "X-XSRF-TOKEN": parse.unquote(s.cookies.get_dict()["XSRF-TOKEN"]),
+            "X-CSRF-TOKEN": csrf
+        })
+        rs = s.post("https://www.y2b.xyz/analysis",
+                    json={"url": f"https://www.youtube.com/watch?v={self.vid}",
+                          "channel": "one"},
+                    useProxy=True,
+                    wantStatusCode=200).json()
+        return rs
 
 # if __name__ == "__main__":
 #     print(GetVideo.getUrl("https://www.youtube.com/watch?v=7FDyF8gVoL8"))

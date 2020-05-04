@@ -1,13 +1,9 @@
 import json
-import requests
-import sqlite3
 from utility import tool
-import logging
-
-logger = logging.getLogger("fileLogger")
 
 
 def get_work_list():
+    logger = tool.getLogger()
     api_key = tool.settingConf["GoogleToken"]
     db = tool.getDB()
     _return = []
@@ -28,14 +24,15 @@ def get_work_list():
             _res: dict = s.get(url, params=params, useProxy=True).json()
             if _res.get("error") is not None:
                 _res = _res["error"]
-                logger.error("code[{}],message[{}]".format(
-                    _res["code"], _res["message"]))
-                raise Exception("获取视频失败，请检查配置文件setting.yaml")
+                logger.error(
+                    f"code[{_res['code']}],message[{_res['message']}]")
+                logger.error(f"获取视频失败，请检查配置文件setting.yaml的[{i}]")
+                break
             for __ in _res["items"]:
                 tmp_data = __["snippet"]
                 video_id = tmp_data["resourceId"]["videoId"]
                 db_res = db.execute(
-                    "select count(vid) from data where vid='{}';".format(video_id)).fetchone()[0]
+                    "select count(vid) from data where vid=?;", (video_id, )).fetchone()[0]
                 if int(db_res) != 0:
                     # print(video_id)
                     continue

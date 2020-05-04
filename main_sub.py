@@ -52,6 +52,7 @@ def run():
             if vid is None or len(vid) == 0:
                 continue
             send((bvid, i["cid"]) + vid, cookie)
+    db.close()
     Subtitle.fix_sub(cookie=cookie)
 
     # for i in pages:

@@ -1,9 +1,9 @@
 # 频道名称:
 #   id: 频道id
-#   hd: true # 是否搬运1080P，0为否，1为是。注意：为1时，必须提前安装ffmpeg，否则会报错！！！！！
+#   hd: true # 是否搬运1080P，false为否，true为是。注意：为true时，必须提前安装ffmpeg，否则会报错！！！！！
 #   pages: 1 # 要搬运前几页，必须为整数
 #   countPerPage: 50 # 每页几个视频，只能在[1-50],其他直接报错，必须为整数，也就是说，会搬运该YouTuber的前pages*countPerPage个视频
-#   multipart: true  # 是否将Youtube的多个视频合并为Bilibili的单个视频下的多个分p，只能为1或0
+#   multipart: true  # 是否将Youtube的多个视频合并为Bilibili的单个视频下的多个分p，只能为true或false
 #                    # false：不分P，一个Youtube视频对应一个Bilibili视频
 #                    # true: 分P，多个Youtub视频对应一个分批
 #   bvid: BVxxxxx    # 投递的视频的bv号，multipart=true时必须填
@@ -13,7 +13,7 @@
 #         本视频由爬虫抓取，并由爬虫上传
 #         字幕请使用b站的外挂字幕,字幕上传需要时间,请等待
 #         测试阶段，可能出现数据不准
-#                    # 也就是视频的描述，字数<250, multipart=0时必须填
+#                    # 也就是视频的描述，字数<250, multipart=false时必须填
 #   tags:            # 视频的标签，或者是话题
 #     - Restore It
 #     - 翻新

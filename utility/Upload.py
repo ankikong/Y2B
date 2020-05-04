@@ -1,63 +1,64 @@
-import requests
 import json
-import re
 import os
 import math
 import base64
 import time
-import urllib3
-import logging
 from utility import tool
-logger = logging.getLogger("fileLogger")
-urllib3.disable_warnings()
-proxies = {"http": "http://127.0.0.1:10809", "https": "http://127.0.0.1:10809"}
-# proxies = None
-
-# def upload(videoInfo:dict, accountInfo:tool.AccountManager, dmer:tool.DownloadManager):
+import threading
 
 
-def uploadFile(cookie: dict, videoPath: str) -> str:
+def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
+    logger = tool.getLogger()
     file_size = os.path.getsize(videoPath)
     s = tool.Session()
     s.cookies.update(cookie)
+    limit: threading.Semaphore = None
+    limitCnt = 0
 
     param = {
-        "os": "upos",
-        "upcdn": "ws",
         "name": "{}.mp4".format(int(time.time())),
         "size": file_size,
         "r": "upos",
-        "profile": "ugcupos/yb",
+        "profile": "ugcupos/bup",
         "ssl": "0",
-        "version": "2.6.4",
-        "build": "2060400",
+        "version": "2.7.1",
+        "build": "2070100",
+        "upcdn": "tx",
+        "probe_version": "20200427",
     }
     url = "https://member.bilibili.com/preupload"
     _data = s.get(url=url, params=param).text
+    logger.debug(_data)
     _data = json.loads(_data)
     upload_size = _data["chunk_size"]
     upos_uri = _data["upos_uri"].replace("upos:/", "").replace("/ugc/", "")
     biz_id = _data["biz_id"]
     endpoint = _data["endpoint"]
     auth = _data["auth"]
+    if enableParallel:
+        limit = threading.Semaphore(_data["threads"])
+        limitCnt = _data["threads"]
+        logger.info("use parallel upload, count:{}".format(_data["threads"]))
+
     logger.info("preupload done")
     # get upload id
-    data_url = "https:{1}/ugc/{0}?uploads&output=json".format(
-        upos_uri, endpoint)
+    data_url = f"https:{endpoint}/ugc/{upos_uri}?uploads&output=json"
     s.headers.update({"X-Upos-Auth": auth})
-    while True:
-        try:
-            _data = s.post(url=data_url).json()
-            upload_id = _data["upload_id"]
-            break
-        except (IndexError, KeyError):
-            time.sleep(2)
-            continue
+    # while True:
+    #     try:
+    #         _data = s.post(url=data_url).json()
+    #         upload_id = _data["upload_id"]
+    #         break
+    #     except (IndexError, KeyError):
+    #         time.sleep(2)
+    #         continue
+    _data = s.post(url=data_url).json()
+    upload_id = _data["upload_id"]
     logger.debug(json.dumps(_data))
     logger.info("get upload id done")
     # start upload
     # upload_size = 8 * 1024 * 1024
-    upload_url = "https:{0}/ugc/{1}".format(endpoint, upos_uri)
+    upload_url = f"https:{endpoint}/ugc/{upos_uri}"
     total_chunk = math.ceil(file_size / upload_size)
     index = 1
     now_size = 0
@@ -81,40 +82,54 @@ def uploadFile(cookie: dict, videoPath: str) -> str:
         }
         now_size = new_end + 1
         index += 1
-        while True:
-            res = s.put(url=upload_url, params=param, data=part)
-            if res.status_code == 200:
-                res = res.text
-                break
-            logger.error("{}/{}: failed".format(index - 1, total_chunk))
-            time.sleep(10)
+
+        def threadUpload(url, param, part, s):
+            logger = tool.getLogger()
+            res = s.put(url=upload_url, params=param,
+                        data=part, wantStatusCode=200)
+            logger.info(
+                "{}/{}:{}".format(param["chunk"], param["chunks"], res.text))
+            limit.release()
+        if enableParallel:
+            limit.acquire()
+            threading.Thread(target=threadUpload, args=(
+                upload_url, param.copy(), part, s)).start()
+        else:
+            res = s.put(url=upload_url, params=param,
+                        data=part, wantStatusCode=200)
+            logger.info(f"{index - 1}/{total_chunk}:{res.text}")
         restore["parts"].append({"partNumber": index, "eTag": "etag"})
-        logger.info("{}/{}:".format(index - 1, total_chunk) + res)
+    for _ in range(limitCnt):
+        limit.acquire()
+    del limit
     file.close()
     # 上传完成
     param = {
         'output': 'json',
         'name': time.ctime() + ".mp4",
-        'profile': 'ugcupos/yb',
+        'profile': 'ugcupos/bup',
         'uploadId': upload_id,
         'biz_id': biz_id,
     }
     _data = s.post(upload_url, params=param, json=restore).text
-    logger.info("upload file done: {}".format(upos_uri))
+    logger.info(f"upload file done: {upos_uri}")
     logger.debug(_data)
     return upos_uri
 
 
 def uploadWithOldBvid(cookie: dict, uploadInfo: dict, videoPath: str) -> str:
-    upos_uri = uploadFile(cookie, videoPath)
+    logger = tool.getLogger()
+    enableParallel = uploadInfo.get("enableParallel", False)
+    upos_uri = uploadFile(cookie, videoPath, enableParallel=enableParallel)
     s = tool.Session()
     s.cookies.update(cookie)
 
-    url = "https://member.bilibili.com/x/vu/web/edit?csrf=" + \
-        cookie["bili_jct"]
+    url = f"https://member.bilibili.com/x/vu/web/edit?csrf={cookie['bili_jct']}"
+
     # s.headers.pop("X-Upos-Auth")
-    _rs = s.get("https://member.bilibili.com/x/web/archive/view?bvid={}".format(
-        uploadInfo["bvid"])).json()["data"]
+    _rs = s.get(
+        f"https://member.bilibili.com/x/web/archive/view?bvid={uploadInfo['bvid']}"
+    ).json()["data"]
     # logger.debug(json.dumps(_rs["videos"]))
     videos = []
     for i in _rs["videos"]:
@@ -151,7 +166,9 @@ def uploadWithOldBvid(cookie: dict, uploadInfo: dict, videoPath: str) -> str:
 
 
 def uploadWithNewBvid(cookie: dict, uploadInfo: dict, videoPath: str):
-    upos_uri = uploadFile(cookie, videoPath)
+    logger = tool.getLogger()
+    enableParallel = uploadInfo.get("enableParallel", False)
+    upos_uri = uploadFile(cookie, videoPath, enableParallel=enableParallel)
     s = tool.Session()
     s.cookies.update(cookie)
     csrf = cookie["bili_jct"]
@@ -159,8 +176,8 @@ def uploadWithNewBvid(cookie: dict, uploadInfo: dict, videoPath: str):
     def cover(csrf, uploadInfo):
         vid = uploadInfo["id"]
         __url = "https://member.bilibili.com/x/vu/web/cover/up"
-        __imgURL = "https://i1.ytimg.com/vi/{}/maxresdefault.jpg"
-        __rs = s.get(__imgURL.format(vid), useProxy=True, wantStatusCode=200)
+        __imgURL = f"https://i1.ytimg.com/vi/{vid}/maxresdefault.jpg"
+        __rs = s.get(__imgURL, useProxy=True, wantStatusCode=200)
         __send = {"cover": "data:image/jpeg;base64," +
                   base64.b64encode(__rs.content).decode(),
                   "csrf": csrf

@@ -9,16 +9,14 @@ from Crypto.PublicKey import RSA
 from hashlib import md5
 from urllib import parse
 import os
-import logging
 import logging.config
+import threading
+import yaml
+import sqlite3
 # pycryptodome pycrypto
 
 
 # config tool start
-
-import yaml
-import sqlite3
-
 _settingConf = "conf/setting.yaml"
 _channelConf = "conf/channel.yaml"
 _loggingConf = "conf/logging.yaml"
@@ -32,6 +30,7 @@ class Config:
 
     def __init__(self, file):
         self.__select = file
+        self.__lock = threading.Lock()
         with open(file, encoding="utf8") as tmp:
             self.data: dict = yaml.load(tmp.read(), Loader=yaml.FullLoader)
         if file == Config.LOGGING:
@@ -51,16 +50,22 @@ class Config:
     def save(self):
         if self.__select == Config.LOGGING:
             return
+        self.__lock.acquire()
         with open(self.__select, "w", encoding="utf8") as tmp:
             yaml.dump(self.data, tmp)
+        self.__lock.acquire()
 
 
 loggingConf = Config(Config.LOGGING)
 settingConf = Config(Config.SETTING)
 channelConf = Config(Config.CHANNEL)
 
+# 初始化logger
 logging.config.dictConfig(loggingConf.data)
-logger = logging.getLogger("fileLogger")
+
+
+def getLogger() -> logging.Logger:
+    return logging.getLogger("fileLogger")
 
 
 def getDB():
@@ -77,8 +82,8 @@ class Session(requests.Session):
         super(Session, self).__init__()
         self.proxy = settingConf["Proxy"]
         self.timeouts: tuple = (120, 240)
-        self.retryDelay: int = 2
-        self.retry: int = 6
+        self.retryDelay: int = 1
+        self.retry: int = 8
         self.headers.update({
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.129 Safari/537.36",
             "accept-language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6",
@@ -99,16 +104,18 @@ class Session(requests.Session):
             }
         if args.get("timeout") is None:
             args["timeout"] = self.timeouts
+        nowDelay = self.retryDelay
+        logger = getLogger()
         for _ in range(self.retry):
             try:
                 rs = self.request(method, url, **args)
                 if wantStatusCode is None or rs.status_code == wantStatusCode:
                     return rs
             except Exception as e:
-                logger.debug(str(e) + ",retrying......")
-            time.sleep(self.retryDelay)
-        logger.error("network, {} {} want[{}]".format(
-            method, url, wantStatusCode))
+                logger.debug(f"{e},retrying......")
+            time.sleep(nowDelay)
+            nowDelay += nowDelay
+        logger.error(f"network, {method} {url} want[{wantStatusCode}]")
         raise Exception("check network status")
 
     def get(self, url, useProxy: bool = False, wantStatusCode: int = None, **args) -> requests.models.Response:
@@ -259,7 +266,7 @@ def getSign(tmp):
 def getSign2(params: dict) -> dict:
     tmp = []
     for i in params:
-        tmp.append("{}={}".format(i, parse.quote_plus(str(params[i]))))
+        tmp.append(f"{i}={parse.quote_plus(str(params[i]))}")
     tmp.sort()
     tmp = "&".join(tmp)
     params["sign"] = md5((tmp + APP_SECRET).encode("utf-8")).hexdigest()
@@ -321,9 +328,11 @@ class AccountManager:
         # item = "appkey=" + APP_KEY + "&password=" + password + "&username=" + userid
         item = getSign2(items)
         page_temp = s.post(baseurl, params=item, proxies=proxy).json()
-
         if(page_temp['code'] != 0):
-            raise Exception(page_temp['message'])
+            logger = getLogger()
+            logger.error(page_temp['message'])
+            logger.error("check network, account, password settings...")
+            exit("error")
 
         # print(page_temp)
         access_key = page_temp["data"]['token_info']['access_token']
@@ -340,8 +349,9 @@ class AccountManager:
         pwd = self.__setting[self.__profileName].get("Password")
         if usr is None or pwd is None:
             # 配置文件没有账号密码，无法登录
-            raise Exception(
-                "Please input you account and password into " + _settingConf)
+            logger = getLogger()
+            logger.error("no account, password in settings.yaml")
+            exit("error")
         token, reToken = AccountManager.loginWithIdAndPwd(usr, pwd)
         self.__setting[self.__profileName]["token"] = token
         self.__setting[self.__profileName]["refreshtoken"] = reToken
@@ -427,6 +437,31 @@ class AccountManager:
         return self.cookie
 
 # verify tool end
+
+# unique pool start
+
+
+class UniquePool:
+    def __init__(self):
+        self.__pool = set()
+        self.__lock = threading.Lock()
+
+    def checkAndInsert(self, key) -> bool:
+        self.__lock.acquire()
+        rs = key not in self.__pool
+        self.__pool.add(key)
+        self.__lock.release()
+        return rs
+
+    def remove(self, key) -> bool:
+        self.__lock.acquire()
+        rs = key in self.__pool
+        if rs:
+            self.__pool.remove(key)
+        self.__lock.release()
+        return rs
+
+# unique pool stop
 
 
 if __name__ == "__main__":
