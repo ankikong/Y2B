@@ -258,7 +258,7 @@ def getSign(tmp):
     if type(tmp) is dict:
         ttmp = []
         for i in sorted(tmp.keys()):
-            ttmp.append(i + "=" + str(tmp[i]))
+            ttmp.append(f"{i}={tmp[i]}")
         tmp = "&".join(ttmp)
     return tmp + "&sign=" + md5((tmp + APP_SECRET).encode("utf-8")).hexdigest()
 

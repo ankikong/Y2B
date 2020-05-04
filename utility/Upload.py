@@ -87,8 +87,7 @@ def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
             logger = tool.getLogger()
             res = s.put(url=upload_url, params=param,
                         data=part, wantStatusCode=200)
-            logger.info(
-                "{}/{}:{}".format(param["chunk"], param["chunks"], res.text))
+            logger.info(f"{param['partNumber']}/{param['chunks']}:{res.text}")
             limit.release()
         if enableParallel:
             limit.acquire()
