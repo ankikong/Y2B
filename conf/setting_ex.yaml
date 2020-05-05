@@ -62,11 +62,8 @@ Proxy: # 修改为自己的代理
 # 可以选择不管，或者是把时间间隔调大点
 Scheduler:
   Subtitle:
-    trigger: interval
-    months: 1
-    weeks: 3
-    days: 4
-    second: 5
+    trigger: cron
+    hour: 6,12,18
   Video:
     trigger: interval
     minutes: 2
