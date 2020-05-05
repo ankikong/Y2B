@@ -24,8 +24,8 @@ def handleException(exp):
     logger.error("", exc_info=True)
 
 
-signal.signal(signal.SIGINT, exits)
-signal.signal(signal.SIGTERM, exits)
+# signal.signal(signal.SIGINT, exits)
+# signal.signal(signal.SIGTERM, exits)
 
 # 截取失败记录，方便debug
 job.add_listener(handleException, events.EVENT_JOB_ERROR)
