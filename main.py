@@ -1,3 +1,4 @@
+import datetime
 import main_upload
 import main_sub
 import signal
@@ -31,7 +32,8 @@ def handleException(exp):
 job.add_listener(handleException, events.EVENT_JOB_ERROR)
 
 # 获取视频任务定时任务
-job.add_job(main_upload.jobProducer, **tool.settingConf["Scheduler"]["Video"])
+job.add_job(main_upload.jobProducer, **
+            tool.settingConf["Scheduler"]["Video"], next_run_time=datetime.datetime.now())
 
 # 定时确定视频消费者线程是否正常运行
 job.add_job(main_upload.jobConsumer, trigger="interval", minutes=2)
