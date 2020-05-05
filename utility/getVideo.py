@@ -37,6 +37,7 @@ class VideoManager:
                 _tmpRs = self.getVideoUrl()
         except:
             logger.info(f"[{self.vid}] another way failed, noway..")
+            logger.debug("", exc_info=True)
             return False, ""
         for i in _tmpRs["formats"]:
             rs[i["format_id"]] = i
@@ -61,7 +62,7 @@ class VideoManager:
                     urlv = rs[i]["url"]
                     break
 
-        logger.info(f"vurl[{urlv is None}]; surl[{urls is None}]")
+        logger.info(f"{self.vid}:v[{urlv is not None}],a[{urls is not None}]")
         if urlv is None:
             return False, ""
         cmd = ffmpegPath + ' -i "{}" -i "{}" ' + ffmpegArgs + ' "{}"'

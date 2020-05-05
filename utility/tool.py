@@ -111,8 +111,8 @@ class Session(requests.Session):
                 rs = self.request(method, url, **args)
                 if wantStatusCode is None or rs.status_code == wantStatusCode:
                     return rs
-            except Exception as e:
-                logger.debug(f"{e},retrying......")
+            except:
+                logger.debug("retrying......", exc_info=True)
             time.sleep(nowDelay)
             nowDelay += nowDelay
         logger.error(f"network, {method} {url} want[{wantStatusCode}]")
@@ -461,7 +461,32 @@ class UniquePool:
         self.__lock.release()
         return rs
 
+    def size(self):
+        return len(self.__pool)
+
 # unique pool stop
+
+# MyThreadTool
+
+
+class Thread(threading.Thread):
+    def __init__(self, **args):
+        threading.Thread.__init__(self, **args)
+
+    def run(self):
+        try:
+            if self._target:
+                self._target(*self._args, **self._kwargs)
+        except:
+            logger = getLogger()
+            logger.error("Thread:", exc_info=True)
+            del logger
+        finally:
+            # Avoid a refcycle if the thread is running a function with
+            # an argument that has a member that points to the thread.
+            del self._target, self._args, self._kwargs
+
+# MyThreadTool end
 
 
 if __name__ == "__main__":

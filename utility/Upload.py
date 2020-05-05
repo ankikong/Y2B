@@ -91,17 +91,18 @@ def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
             limit.release()
         if enableParallel:
             limit.acquire()
-            threading.Thread(target=threadUpload, args=(
+            tool.Thread(target=threadUpload, args=(
                 upload_url, param.copy(), part, s)).start()
         else:
             res = s.put(url=upload_url, params=param,
                         data=part, wantStatusCode=200)
             logger.info(f"{index - 1}/{total_chunk}:{res.text}")
         restore["parts"].append({"partNumber": index, "eTag": "etag"})
-    for _ in range(limitCnt):
-        limit.acquire()
     del limit
     file.close()
+    for _ in range(limitCnt):
+        if not limit.acquire(timeout=60 * 20):
+            return False, ""
     # 上传完成
     param = {
         'output': 'json',
@@ -113,13 +114,16 @@ def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
     _data = s.post(upload_url, params=param, json=restore).text
     logger.info(f"upload file done: {upos_uri}")
     logger.debug(_data)
-    return upos_uri
+    return True, upos_uri
 
 
-def uploadWithOldBvid(cookie: dict, uploadInfo: dict, videoPath: str) -> str:
+def uploadWithOldBvid(cookie: dict, uploadInfo: dict, videoPath: str):
     logger = tool.getLogger()
     enableParallel = uploadInfo.get("enableParallel", False)
-    upos_uri = uploadFile(cookie, videoPath, enableParallel=enableParallel)
+    success, upos_uri = uploadFile(
+        cookie, videoPath, enableParallel=enableParallel)
+    if not success:
+        return False
     s = tool.Session()
     s.cookies.update(cookie)
 
@@ -141,7 +145,8 @@ def uploadWithOldBvid(cookie: dict, uploadInfo: dict, videoPath: str) -> str:
                    "title": uploadInfo["title"][0:min(79, len(uploadInfo["title"]))],
                    "desc": uploadInfo["id"]
                    })
-    send_data = {"copyright": 2, "videos": videos,
+    send_data = {"copyright": 2,
+                 "videos": videos,
                  "source": _rs["archive"]["source"],
                  "tid": _rs["archive"]["tid"],
                  "cover": _rs["archive"]["cover"].split(":")[-1],
@@ -167,7 +172,10 @@ def uploadWithOldBvid(cookie: dict, uploadInfo: dict, videoPath: str) -> str:
 def uploadWithNewBvid(cookie: dict, uploadInfo: dict, videoPath: str):
     logger = tool.getLogger()
     enableParallel = uploadInfo.get("enableParallel", False)
-    upos_uri = uploadFile(cookie, videoPath, enableParallel=enableParallel)
+    success, upos_uri = uploadFile(
+        cookie, videoPath, enableParallel=enableParallel)
+    if not success:
+        return False
     s = tool.Session()
     s.cookies.update(cookie)
     csrf = cookie["bili_jct"]
@@ -189,9 +197,10 @@ def uploadWithNewBvid(cookie: dict, uploadInfo: dict, videoPath: str):
     # s.headers.pop("X-Upos-Auth")
     _data = s.get("https://member.bilibili.com/x/geetest/pre/add").text
     logger.debug(_data)
-    send_data = {"copyright": 2, "videos": [{"filename": upos_uri.split(".")[0],
-                                             "title": uploadInfo["title"],
-                                             "desc": ""}],
+    send_data = {"copyright": 2,
+                 "videos": [{"filename": upos_uri.split(".")[0],
+                             "title": uploadInfo["title"],
+                             "desc": ""}],
                  "source": "https://www.youtube.com/watch?v=" + uploadInfo["id"],
                  "tid": int(uploadInfo["tid"]),
                  "cover": cover(csrf, uploadInfo),
@@ -202,9 +211,8 @@ def uploadWithNewBvid(cookie: dict, uploadInfo: dict, videoPath: str):
                  "dynamic": "#" + "##".join(uploadInfo["tags"]) + "#",
                  "subtitle": {
                         "open": 0,
-                        "lan": ""
-    }
-    }
+                        "lan": ""}
+                 }
     logger.debug(json.dumps(send_data))
     # s.headers.update({"Content-Type": "application/json;charset=UTF-8"})
     res = s.post(url=url, json=send_data).text

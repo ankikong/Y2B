@@ -48,25 +48,26 @@ def run():
 
 def jobProducer():
     logger = tool.getLogger()
-    logger.info("start video Producer")
+    logger.debug("start video Producer")
     try:
         workList = GetPlayList.get_work_list()
         cnt = 0
         for i in workList:
-            cnt += 2
             if unique.checkAndInsert(i["id"]):
+                cnt += 1
                 buffer.put(i, block=True)
-        logger.info(f"GET new: {cnt}")
-    except Exception as e:
+        logger.info(
+            f"new: {cnt}, sum: {unique.size()}, rest: {buffer.qsize()}")
+    except:
         logger = tool.getLogger()
-        logger.error(f"upload-P,{e}")
+        logger.error(f"upload-P", exc_info=True)
     # logger.info("finish video Producer")
 
 
 def __consume():
     account = tool.AccountManager("Anki")
     logger = tool.getLogger()
-    logger.info("start video Consumer")
+    logger.debug("start video Consumer")
     while True:
         i = buffer.get(block=True)
         logger.debug(json.dumps(i))
@@ -102,5 +103,5 @@ def __consume():
 def jobConsumer():
     global tid
     if tid is None or not tid.is_alive():
-        tid = threading.Thread(target=__consume)
+        tid = tool.Thread(target=__consume)
         tid.start()

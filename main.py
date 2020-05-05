@@ -1,4 +1,5 @@
 import main_upload
+import main_sub
 import signal
 from utility import tool
 import sys
@@ -20,8 +21,7 @@ def exits(signalNum, frame):
 
 def handleException(exp):
     logger = tool.getLogger()
-    logger.error(str(exp.exception))
-    exp.print_stack()
+    logger.error("", exc_info=True)
 
 
 signal.signal(signal.SIGINT, exits)
@@ -37,7 +37,7 @@ job.add_job(main_upload.jobProducer, **tool.settingConf["Scheduler"]["Video"])
 job.add_job(main_upload.jobConsumer, trigger="interval", minutes=2)
 
 # 字幕的定时任务暂时不导入
-# implement
+job.add_job(main_sub.run, **tool.settingConf["Scheduler"]["Subtitle"])
 
 # 开启定时任务
 job.start()
