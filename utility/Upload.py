@@ -98,11 +98,11 @@ def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
                         data=part, wantStatusCode=200)
             logger.info(f"{index - 1}/{total_chunk}:{res.text}")
         restore["parts"].append({"partNumber": index, "eTag": "etag"})
-    del limit
     file.close()
     for _ in range(limitCnt):
         if not limit.acquire(timeout=60 * 20):
             return False, ""
+    del limit
     # 上传完成
     param = {
         'output': 'json',
