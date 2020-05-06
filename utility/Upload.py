@@ -22,16 +22,19 @@ def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
     limitCnt = 0
     upos: str = None
     upcdn: str = None
+    cost: float = 99999999
     rs = s.get("https://member.bilibili.com/preupload?r=probe",
                wantStatusCode=200).json()
-    testContent = b'\0' * 104857
+    testContent = b'\0' * 1048576
     for i in rs["lines"]:
         testURL = f"https:{i['probe_url']}"
+        start = time.time()
         tRs = s.put(testURL, data=testContent)
-        if tRs.status_code == 200 and "NGINX_OK" in tRs.text:
+        LCost = time.time() - start
+        if tRs.status_code == 200 and "NGINX_OK" in tRs.text and LCost < cost:
+            cost = LCost
             upos = i["os"]
             upcdn = i["query"]
-            break
     del testContent
     if upcdn is None or upcdn is None:
         return False, ""
