@@ -200,7 +200,7 @@ class DownloadManager:
             total = 1
         completedLength = int(rs["completedLength"])
         percent = (completedLength / total) * 100
-        logger.info(f"file download: {percent:.1}%")
+        logger.info(f"file download: {percent:.4}%")
         if rs["status"] == 'complete':
             return 1
         if rs["status"] == 'active' or rs["status"] == 'waiting':
