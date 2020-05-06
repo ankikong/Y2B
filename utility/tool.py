@@ -117,6 +117,7 @@ class Session(requests.Session):
                                  f"url[{rs.url}], "
                                  f"headers[{dict(rs.headers)}], "
                                  f"rs[{rs.text}], "
+                                 f"req.head[{dict(rs.request.headers)}]"
                                  f"retrying...")
             except Exception:
                 logger.debug("retrying......", exc_info=True)
