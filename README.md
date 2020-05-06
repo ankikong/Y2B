@@ -1,16 +1,23 @@
 # Y2B
 
-把Youtube上的视频转投到哔哩哔哩
+把Youtube上的视频搬运到哔哩哔哩
 
 交流QQ群：**849883545**
 
 ## 食用方法
 
+### 初始化
+
 1. 先执行`pip install -r requirements.txt`,然后再执行`python init.py`
 2. 在conf文件夹,`setting.yaml`,在里面填写b站账号密码,再填写`GoogleApi`的密钥
 3. `channel.yaml`是指定搬运的`Youtube`频道
 4. 需要安装aria2c，并开启jsonrpc
-5. 改完上述配置文件,直接`python main.py`就好了
+
+### 运行
+
+完成初始化后，直接`python main.py`就好了
+
+### 注释
 
 视频搬运分为两种方式，一种是分P，一种是不分P
 
@@ -20,6 +27,7 @@
 
 ## 软件依赖
 
+- python >= 3.6
 - aria2
 - ffmpeg
 
@@ -29,6 +37,8 @@
 
 ## 更新记录
 
+- 2020.05.04
+  - 增加定时任务
 - 2020.05.03
   - 迁移配置文件为yaml
   - 修复封面丢失的问题
