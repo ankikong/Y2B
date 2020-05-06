@@ -58,7 +58,7 @@ def jobProducer():
                 buffer.put(i, block=True)
         logger.info(
             f"new: {cnt}, sum: {unique.size()}, rest: {buffer.qsize()}")
-    except:
+    except Exception:
         logger = tool.getLogger()
         logger.error(f"upload-P", exc_info=True)
     # logger.info("finish video Producer")
@@ -76,12 +76,15 @@ def __consume():
         vmer = getVideo.VideoManager(i["id"], i["hd"])
         data = vmer.getVideo()
         if data[0]:
+            logger.info("download done")
+            cookie = account.getCookies()
+            logger.info("get cookie done")
             if i["multipart"]:
                 res = Upload.uploadWithOldBvid(
-                    account.getCookies(), i, data[1])
+                    cookie, i, data[1])
             else:
                 res = Upload.uploadWithNewBvid(
-                    account.getCookies(), i, data[1])
+                    cookie, i, data[1])
             if type(res) == bool:
                 continue
             res = json.loads(res)

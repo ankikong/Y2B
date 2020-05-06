@@ -9,6 +9,7 @@ import threading
 
 def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
     logger = tool.getLogger()
+    logger.info(f"start {videoPath}")
     file_size = os.path.getsize(videoPath)
     s = tool.Session()
     s.cookies.update(cookie)
