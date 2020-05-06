@@ -112,9 +112,12 @@ class Session(requests.Session):
                 if wantStatusCode is None or rs.status_code == wantStatusCode:
                     return rs
                 else:
-                    logger.error(f"want[{wantStatusCode}], "
+                    logger.debug(f"want[{wantStatusCode}], "
                                  f"get[{rs.status_code}], "
-                                 f"rs[{rs.text}], retrying...")
+                                 f"url[{rs.url}], "
+                                 f"headers[{dict(rs.headers)}], "
+                                 f"rs[{rs.text}], "
+                                 f"retrying...")
             except Exception:
                 logger.debug("retrying......", exc_info=True)
             time.sleep(nowDelay)
