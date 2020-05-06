@@ -142,6 +142,7 @@ class DownloadManager:
         self._session = requests.session()
         self._gid = None
         self._fd = None
+        self.__retry = 3
 
     def download(self):
         proxyConv = {}
@@ -186,23 +187,37 @@ class DownloadManager:
 
     def telFinished(self):
         rs = self.telStatus()["result"]
+        logger = getLogger()
+        total = int(rs["totalLength"])
+        if total == 0:
+            total = 1
+        completedLength = int(rs["completedLength"])
+        percent = (completedLength / total) * 100
+        logger.info(f"file download: {percent:.1}%")
         if rs["status"] == 'complete':
             return 1
         if rs["status"] == 'active' or rs["status"] == 'waiting':
             return 0
         if rs["status"] == 'error':
+            logger.error(rs["errorMessage"])
             return -1
         return -1
 
     def waitForFinishing(self):
+        retry = 0
         while True:
             rs = self.telFinished()
             if rs == 1:
                 return 1
             elif rs == -1:
-                return -1
-            else:
-                time.sleep(10)
+                logger = getLogger()
+                if retry < self.__retry:
+                    self.download()
+                    retry += 1
+                    logger.error(f"download failed, retry [{retry}] times")
+                else:
+                    return -1
+            time.sleep(10)
 
     def getFile(self):
         if self._fd is None:
