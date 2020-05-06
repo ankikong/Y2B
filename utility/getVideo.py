@@ -87,7 +87,9 @@ class VideoManager:
                 os.remove(self._o)
             nowCmd = cmd.format(_a, _v, self._o)
             logger.info("cmd: " + nowCmd)
-            if os.system(nowCmd) != 0:
+            cmdRes = os.system(nowCmd)
+            logger.info(f"ffmpeg result:{cmdRes}")
+            if cmdRes != 0:
                 return False, ""
             return True, self._o
         else:

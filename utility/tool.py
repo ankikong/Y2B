@@ -111,7 +111,7 @@ class Session(requests.Session):
                 rs = self.request(method, url, **args)
                 if wantStatusCode is None or rs.status_code == wantStatusCode:
                     return rs
-            except:
+            except Exception:
                 logger.debug("retrying......", exc_info=True)
             time.sleep(nowDelay)
             nowDelay += nowDelay
@@ -492,7 +492,7 @@ class Thread(threading.Thread):
         try:
             if self._target:
                 self._target(*self._args, **self._kwargs)
-        except:
+        except Exception:
             logger = getLogger()
             logger.error("Thread:", exc_info=True)
             del logger
