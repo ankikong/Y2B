@@ -5,6 +5,7 @@ import base64
 import time
 from utility import tool
 import threading
+import re
 
 
 def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
@@ -15,16 +16,32 @@ def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
     s.cookies.update(cookie)
     limit: threading.Semaphore = None
     limitCnt = 0
+    upos: str = None
+    upcdn: str = None
+    rs = s.get("https://member.bilibili.com/preupload?r=probe",
+               wantStatusCode=200).json()
+    if len(rs["lines"]) > 1:
+        upos = rs["lines"][1]["os"]
+        upcdn = rs["lines"][1]["query"]
+    elif len(rs["lines"]) == 1:
+        upos = rs["lines"][0]["os"]
+        upcdn = rs["lines"][0]["query"]
+    else:
+        logger.error("未知错误")
+        logger.error(json.dumps(rs))
+        return False, ""
+    upcdn = re.findall("upcdn=([^&]+)", upcdn)[0]
+    logger.debug(f"upos[{upos}],cdn[{upcdn}]")
 
     param = {
         "name": "{}.mp4".format(int(time.time())),
         "size": file_size,
-        "r": "upos",
+        "r": upos,
         "profile": "ugcupos/bup",
         "ssl": "0",
         "version": "2.7.1",
         "build": "2070100",
-        "upcdn": "tx",
+        "upcdn": upcdn,
         "probe_version": "20200427",
     }
     url = "https://member.bilibili.com/preupload"
