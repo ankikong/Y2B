@@ -8,9 +8,9 @@ FFMPEG:
   path: ffmpeg # 修改为ffmpeg的完整路径.注意,是完整路径,假如ffmpeg在C:/bin/文件夹下,那么要填C:/bin/ffmpeg
                # 如果ffmpeg在环境变量中,只填一个ffmpeg也是可以的
 GoogleToken: 修改为自己的Google api token
-Proxy: # 修改为自己的代理
-  http: http://127.0.0.1:10809
-  https: http://127.0.0.1:10809
+Proxy: # 修改为自己的代理，不需要使用代理，这行别注释
+  http: http://127.0.0.1:10809  # 不使用代理只需注释这两行
+  https: http://127.0.0.1:10809 # 不使用代理只需注释这两行
 # Scheduler使用的是APScheduled模块
 # Subtitle是用来表示每隔多久检查一次字幕是否上传
 # Video是用来表示每隔多久检查一次频道是否有新视频上传
