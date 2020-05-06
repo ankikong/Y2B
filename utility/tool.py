@@ -85,23 +85,23 @@ class Session(requests.Session):
         self.retryDelay: int = 1
         self.retry: int = 8
         self.headers.update({
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.129 Safari/537.36",
-            "accept-language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6",
-            "cache-control": "max-age=0",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "Sec-Fetch-Site": "same-site"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.129 Safari/537.36",
+            "Accept-Language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6",
+            # "cache-control": "max-age=0",
+            # "Sec-Fetch-Dest": "empty",
+            # "Sec-Fetch-Mode": "cors",
+            # "Sec-Fetch-Site": "same-site"
         })
 
     def req(self, method: str, url: str, useProxy: bool = False, wantStatusCode: int = None, **args) -> requests.models.Response:
         args = args.copy()
         if useProxy:
             args["proxies"] = self.proxy
-        if args.get("headers") is None:
-            args["headers"] = {
-                "referer": url,
-                "orgin": url
-            }
+        # if args.get("headers") is None:
+        #     args["headers"] = {
+        #         "referer": url,
+        #         "origin": url
+        #     }
         if args.get("timeout") is None:
             args["timeout"] = self.timeouts
         nowDelay = self.retryDelay
@@ -112,12 +112,15 @@ class Session(requests.Session):
                 if wantStatusCode is None or rs.status_code == wantStatusCode:
                     return rs
                 else:
+                    reqHead = dict(rs.request.headers)
+                    if reqHead.get("Cookie", None) is not None:
+                        reqHead.pop("Cookie")
                     logger.debug(f"want[{wantStatusCode}], "
                                  f"get[{rs.status_code}], "
                                  f"url[{rs.url}], "
                                  f"headers[{dict(rs.headers)}], "
                                  f"rs[{rs.text}], "
-                                 f"req.head[{dict(rs.request.headers)}]"
+                                 f"req.head[{reqHead}]"
                                  f"retrying...")
             except Exception:
                 logger.debug("retrying......", exc_info=True)

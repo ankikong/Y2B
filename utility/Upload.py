@@ -14,21 +14,26 @@ def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
     file_size = os.path.getsize(videoPath)
     s = tool.Session()
     s.cookies.update(cookie)
+    s.headers.update({
+        "Origin": "https://member.bilibili.com",
+        "Referer": "https://member.bilibili.com/video/upload.html",
+    })
     limit: threading.Semaphore = None
     limitCnt = 0
     upos: str = None
     upcdn: str = None
     rs = s.get("https://member.bilibili.com/preupload?r=probe",
                wantStatusCode=200).json()
-    if len(rs["lines"]) > 1:
-        upos = rs["lines"][1]["os"]
-        upcdn = rs["lines"][1]["query"]
-    elif len(rs["lines"]) == 1:
-        upos = rs["lines"][0]["os"]
-        upcdn = rs["lines"][0]["query"]
-    else:
-        logger.error("未知错误")
-        logger.error(json.dumps(rs))
+    testContent = b'\0' * 104857
+    for i in rs["lines"]:
+        testURL = f"https:{i['probe_url']}"
+        tRs = s.put(testURL, data=testContent)
+        if tRs.status_code == 200 and "NGINX_OK" in tRs.text:
+            upos = i["os"]
+            upcdn = i["query"]
+            break
+    del testContent
+    if upcdn is None or upcdn is None:
         return False, ""
     upcdn = re.findall("upcdn=([^&]+)", upcdn)[0]
     logger.debug(f"upos[{upos}],cdn[{upcdn}]")
