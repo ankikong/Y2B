@@ -39,8 +39,10 @@ class VideoManager:
             logger.info(f"[{self.vid}] another way failed, noway..")
             logger.debug("", exc_info=True)
             return False, ""
+        headers: dict = None
         for i in _tmpRs["formats"]:
             rs[i["format_id"]] = i
+            headers = i["http_headers"]
 
         urlv = None
         urls = None
@@ -68,11 +70,19 @@ class VideoManager:
         cmd = ffmpegPath + ' -i "{}" -i "{}" ' + ffmpegArgs + ' "{}"'
 
         self._dmer1 = tool.DownloadManager(
-            urlv, proxy=proxy, jsonrpc=jsonrpc, files=self.vid + "_v")
+            urlv,
+            proxy=proxy,
+            jsonrpc=jsonrpc,
+            files=self.vid + "_v",
+            headers=headers)
         self._dmer1.download()
         if urls is not None:
             self._dmer2 = tool.DownloadManager(
-                urls, proxy=proxy, jsonrpc=jsonrpc, files=self.vid + "_s")
+                urls,
+                proxy=proxy,
+                jsonrpc=jsonrpc,
+                files=self.vid + "_s",
+                headers=headers)
             self._dmer2.download()
             if self._dmer2.waitForFinishing() != 1:
                 return False, ""

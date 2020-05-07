@@ -144,7 +144,7 @@ class Session(requests.Session):
 
 
 class DownloadManager:
-    def __init__(self, url, proxy={}, dirs="E:/", files=None, jsonrpc="http://localhost:6800/jsonrpc"):
+    def __init__(self, url, headers=None, proxy={}, dirs="E:/", files=None, jsonrpc="http://localhost:6800/jsonrpc"):
         self.url = url
         self.proxy = proxy
         self.dirs = dirs
@@ -154,6 +154,7 @@ class DownloadManager:
         self._gid = None
         self._fd = None
         self.__retry = 3
+        self.headers = headers
 
     def download(self):
         proxyConv = {}
@@ -164,7 +165,7 @@ class DownloadManager:
         data = {
             "jsonrpc": "2.0",
             "method": "aria2.addUri",
-            "id": 1,
+            "id": int(time.time()),
             "params": [[self.url], {
                 "max-connection-per-server": "16",
                 "out": self.files,
@@ -272,6 +273,8 @@ class DownloadManager:
             "Accept-Encoding": "gzip, deflate, br",
             "Accept-Language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6",
         }
+        if self.headers is not None:
+            header = self.headers
         rs = []
         for i in header:
             rs.append(f"{i}: {header[i]}")
