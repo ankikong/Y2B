@@ -53,7 +53,7 @@ class Config:
         self.__lock.acquire()
         with open(self.__select, "w", encoding="utf8") as tmp:
             yaml.dump(self.data, tmp)
-        self.__lock.acquire()
+        self.__lock.release()
 
 
 loggingConf = Config(Config.LOGGING)
@@ -165,12 +165,11 @@ class DownloadManager:
             "jsonrpc": "2.0",
             "method": "aria2.addUri",
             "id": 1,
-            "params": [[self.url],
-                       {
+            "params": [[self.url], {
                 "max-connection-per-server": "16",
                 "out": self.files,
-                **proxyConv
-            }
+                "header": self.getHeaders(),
+                **proxyConv}
             ]
         }
         # print(json.dumps(data))
@@ -263,6 +262,20 @@ class DownloadManager:
             "params": [self._gid]
         })
         return rs
+
+    def getHeaders(self):
+        header = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.129 Safari/537.36",
+            "Accept": "*/*",
+            "Origin": "https://www.youtube.com",
+            "Referer": "https://www.youtube.com/",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6",
+        }
+        rs = []
+        for i in header:
+            rs.append(f"{i}: {header[i]}")
+        return rs
 # download tool end
 
 
@@ -322,15 +335,16 @@ class AccountManager:
         self.__profileName = accountName
         self.mid = None
         self.cookie = None
+        self.__s = Session()
+        self.__s.headers = header
 
-    @staticmethod
-    def loginWithIdAndPwd(userid, password):
+    def loginWithIdAndPwd(self, userid, password):
         baseurl = "https://passport.bilibili.com/api/v3/oauth2/login"
         url = 'https://passport.bilibili.com/api/oauth2/getKey'
 
-        s = requests.Session()
+        # s = requests.Session()
         # s.verify = False
-        s.headers.update(header)
+        # s.headers.update(header)
 
         keyItem = {
             "appkey": APP_KEY,
@@ -344,7 +358,8 @@ class AccountManager:
         # keyData = "appkey=" + APP_KEY
         keyData = getSign2(keyItem)
         # header["Content-Type"] = 'application/x-www-form-urlencoded; charset=UTF-8'
-        token = s.post(url, params=keyData, proxies=proxy).json()["data"]
+        token = self.__s.post(url, params=keyData,
+                              proxies=proxy).json()["data"]
         key = token['key'].encode()
         _hash = token['hash'].encode()
 
@@ -366,7 +381,7 @@ class AccountManager:
         }
         # item = "appkey=" + APP_KEY + "&password=" + password + "&username=" + userid
         item = getSign2(items)
-        page_temp = s.post(baseurl, params=item, proxies=proxy).json()
+        page_temp = self.__s.post(baseurl, params=item, proxies=proxy).json()
         if(page_temp['code'] != 0):
             logger = getLogger()
             logger.error(page_temp['message'])
@@ -391,7 +406,7 @@ class AccountManager:
             logger = getLogger()
             logger.error("no account, password in settings.yaml")
             exit("error")
-        token, reToken = AccountManager.loginWithIdAndPwd(usr, pwd)
+        token, reToken = self.loginWithIdAndPwd(usr, pwd)
         self.__setting[self.__profileName]["token"] = token
         self.__setting[self.__profileName]["refreshtoken"] = reToken
         self.save()
@@ -399,8 +414,7 @@ class AccountManager:
     def save(self):
         self.__setting.save()
 
-    @staticmethod
-    def refreshTokenWithTokenAndRToken(token, refreshtoken):
+    def refreshTokenWithTokenAndRToken(self, token, refreshtoken):
         """ Postpone expiration; 推迟token的过期时间(续命)
         """
         url = "https://passport.bilibili.com/api/oauth2/refreshToken"
@@ -408,19 +422,19 @@ class AccountManager:
                   "refresh_token": refreshtoken, "appkey": APP_KEY}
         params = getSign(params)
         header["Content-Type"] = 'application/x-www-form-urlencoded; charset=UTF-8'
-        res = requests.post(url, data=params, headers=header).text
+        res = self.__s.post(url, data=params, headers=header).text
         return res
 
     def refreshToken(self):
         """ Postpone expiration; 推迟token的过期时间(续命)
         """
         token, reToken = self.__setting[self.__profileName]["token"], self.__setting[self.__profileName]["refreshtoken"]
-        return AccountManager.refreshTokenWithTokenAndRToken(token, reToken)
+        return self.refreshTokenWithTokenAndRToken(token, reToken)
 
     def __getPersonInfo(self):
         token = self.__setting[self.__profileName].get("token", "")
         url = "https://api.bilibili.com/x/web-interface/nav?access_key=" + token
-        res = requests.get(url).json()
+        res = self.__s.get(url).json()
         return res
 
     def checkIsLogin(self):
@@ -457,9 +471,8 @@ class AccountManager:
             url = "https://passport.bilibili.com/api/login/sso?" + \
                 getSign({"access_key": self.getToken(), "appkey": APP_KEY})
             # print(url)
-            s = requests.session()
-            s.get(url)
-            tmp = s.cookies.get_dict()
+            self.__s.get(url)
+            tmp = self.__s.cookies.get_dict()
             self.__setting[self.__profileName]["cookie"] = tmp
             self.__setting[self.__profileName]["ts"] = int(time.time())
             self.save()
