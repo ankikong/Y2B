@@ -96,7 +96,10 @@ class Session(requests.Session):
     def req(self, method: str, url: str, useProxy: bool = False, wantStatusCode: int = None, **args) -> requests.models.Response:
         args = args.copy()
         if useProxy:
-            args["proxies"] = self.proxy
+            args["proxies"] = {
+                "http": self.proxy,
+                "https": self.proxy
+            }
         # if args.get("headers") is None:
         #     args["headers"] = {
         #         "referer": url,
@@ -144,7 +147,7 @@ class Session(requests.Session):
 
 
 class DownloadManager:
-    def __init__(self, url, headers=None, proxy={}, dirs="E:/", files=None, jsonrpc="http://localhost:6800/jsonrpc"):
+    def __init__(self, url, headers=None, proxy=None, dirs="E:/", files=None, jsonrpc="http://localhost:6800/jsonrpc"):
         self.url = url
         self.proxy = proxy
         self.dirs = dirs
@@ -157,21 +160,15 @@ class DownloadManager:
         self.headers = headers
 
     def download(self):
-        proxyConv = {}
-        if self.proxy.get("http") is not None:
-            proxyConv["http-proxy"] = self.proxy.get("http")
-        if self.proxy.get("https") is not None:
-            proxyConv["https-proxy"] = self.proxy.get("https")
         data = {
-            "jsonrpc": "2.0",
+            "jsonrpc": 2,
             "method": "aria2.addUri",
             "id": int(time.time()),
             "params": [[self.url], {
-                "max-connection-per-server": "16",
+                "all-proxy": self.proxy,
                 "out": self.files,
                 "header": self.getHeaders(),
-                **proxyConv}
-            ]
+            }]
         }
         # print(json.dumps(data))
         rs = self._post(data)

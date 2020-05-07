@@ -24,7 +24,7 @@ class VideoManager:
         logger = tool.getLogger()
         opt = {"logger": logger}
         if proxy is not None:
-            opt["proxy"] = proxy.get("http")
+            opt["proxy"] = proxy
         _tmpRs: dict = None
         try:
             ydl = youtube_dl.YoutubeDL(opt)
