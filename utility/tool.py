@@ -230,7 +230,7 @@ class DownloadManager:
                     retry += 1
                     logger.error(f"download failed, retry [{retry}] times")
                 else:
-                    logger.debug(self.getOptions())
+                    logger.debug(json.dumps(self.getOptions()))
                     return -1
             time.sleep(10)
 
@@ -261,7 +261,7 @@ class DownloadManager:
             "method": "aria2.getOption",
             "id": 1,
             "params": [self._gid]
-        }).text
+        })
         return rs
 # download tool end
 
