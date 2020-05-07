@@ -155,27 +155,23 @@ class DownloadManager:
         self.jsonrpc = jsonrpc
         self._session = requests.session()
         self._gid = None
-        self._fd = None
         self.__retry = 3
         self.headers = headers
 
     def download(self):
         data = {
-            "id": int(time.time()),
             "jsonrpc": 2,
-            "method": "system.multicall",
-            "params": [[{
-                "methodName": "aria2.addUri",
-                "params": [[self.url], {
-                    "all-proxy": self.proxy,
-                        "header": self.getHeaders(),
-                        "out": self.files
-                        }]}]]
+            "method": "aria2.addUri",
+            "id": int(time.time()),
+            "params": [[self.url], {
+                "all-proxy": self.proxy,
+                "out": self.files,
+                "header": self.getHeaders(),
+            }]
         }
-
         # print(json.dumps(data))
         rs = self._post(data)
-        self._gid = rs['result'][0][0]
+        self._gid = rs['result']
         return rs
 
     def _post(self, json):
@@ -233,17 +229,6 @@ class DownloadManager:
                     logger.debug(json.dumps(self.getOptions()))
                     return -1
             time.sleep(10)
-
-    def getFile(self):
-        if self._fd is None:
-            filePath = self.telFileLocate()
-            self._fd = open(filePath, "rb")
-        return self._fd
-
-    def close(self, deleteFile=False):
-        if self._fd is not None:
-            self._fd.close()
-            self._fd = None
 
     def deleteFile(self):
         filePath = self.telFileLocate()
