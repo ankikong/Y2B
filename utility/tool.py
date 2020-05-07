@@ -210,8 +210,11 @@ class DownloadManager:
         if rs["status"] == 'active' or rs["status"] == 'waiting':
             return 0
         if rs["status"] == 'error':
+            logger.debug(json.dumps(rs))
             logger.error(rs["errorMessage"])
             return -1
+        logger.debug(json.dumps(rs))
+        logger.error("unknown error")
         return -1
 
     def waitForFinishing(self):
@@ -227,6 +230,7 @@ class DownloadManager:
                     retry += 1
                     logger.error(f"download failed, retry [{retry}] times")
                 else:
+                    logger.debug(self.getOptions())
                     return -1
             time.sleep(10)
 
@@ -250,6 +254,15 @@ class DownloadManager:
         rs = self._post(
             {"jsonrpc": "2.0", "method": "aria2.getGlobalOption", "id": 1, "params": []})
         return (str(rs["result"]["dir"]).replace("\\", "/") + "/").replace("//", "/")
+
+    def getOptions(self):
+        rs = self._post({
+            "jsonrpc": "2.0",
+            "method": "aria2.getOption",
+            "id": 1,
+            "params": [self._gid]
+        }).text
+        return rs
 # download tool end
 
 
