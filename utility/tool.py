@@ -167,7 +167,7 @@ class DownloadManager:
             "params": [[self.url], {
                 "all-proxy": self.proxy,
                 "out": self.files,
-                "header": self.getHeaders(),
+                # "header": self.getHeaders(),
             }]
         }
         # print(json.dumps(data))
