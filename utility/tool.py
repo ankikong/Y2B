@@ -161,18 +161,21 @@ class DownloadManager:
 
     def download(self):
         data = {
-            "jsonrpc": 2,
-            "method": "aria2.addUri",
             "id": int(time.time()),
-            "params": [[self.url], {
-                "all-proxy": self.proxy,
-                "out": self.files,
-                # "header": self.getHeaders(),
-            }]
+            "jsonrpc": 2,
+            "method": "system.multicall",
+            "params": [[{
+                "methodName": "aria2.addUri",
+                "params": [[self.url], {
+                    "all-proxy": self.proxy,
+                        "header": self.getHeaders(),
+                        "out": self.files
+                        }]}]]
         }
+
         # print(json.dumps(data))
         rs = self._post(data)
-        self._gid = rs['result']
+        self._gid = rs['result'][0][0]
         return rs
 
     def _post(self, json):
