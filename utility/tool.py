@@ -182,7 +182,7 @@ class DownloadManager:
         self.headers = headers
 
     def download(self):
-        if settingConf["UseCF"]:
+        if settingConf.get("UseCF", False):
             return self.download2()
         data = {
             "jsonrpc": 2,
