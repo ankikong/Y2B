@@ -55,7 +55,7 @@ for i in rs1:
         cid = j["cid"]
         title = j["title"]
         title = parse.unquote(title)
-        
+
         filename = j["filename"]
         if con1.execute("select count(*) from data where bvid=?", (bvid, )).fetchone()[0] == 1:
             rs2 = con1.execute(
@@ -63,7 +63,7 @@ for i in rs1:
         else:
             rs2 = con1.execute(
                 "select vid, zht, zhs, en from data where title=? or vid=?", (title, title)).fetchone()
-        if rs2 is None: # 未知错误
+        if rs2 is None:  # 未知错误
             print("未知错误", bvid, cid, title)
             fCnt += 1
             continue
@@ -118,7 +118,6 @@ print("失败个数：", fCnt)
 del con1
 del con2
 
-os.rename(old, time.ctime())
+os.rename(old, f"data/{time.time()}")
 os.rename(nw, old)
-
 
