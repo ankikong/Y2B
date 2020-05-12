@@ -60,12 +60,15 @@ loggingConf = Config(Config.LOGGING)
 settingConf = Config(Config.SETTING)
 channelConf = Config(Config.CHANNEL)
 
+
 def checkChannel():
     for i in channelConf.data:
-        j:dict = channelConf[i]
+        j: dict = channelConf[i]
         if j.get("platform") not in ["youtube"]:
             exit("channel.yaml格式错误")
         if j.get("type") not in ["playlistId", "q"]:
+            exit("channel.yaml格式错误")
+        if j.get("param") is None:
             exit("channel.yaml格式错误")
         if j.get("multipart") is None:
             exit("channel.yaml格式错误")

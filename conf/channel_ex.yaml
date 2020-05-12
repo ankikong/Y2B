@@ -27,6 +27,7 @@
 #     - 网络爬虫
 #     - python爬虫
 #   title: 【中英/搬运】{title} # 也就是视频的标题，multipart=false时必须填,不能为空！
+#   titleTranslate: false  # 是否翻译标题，默认为否
 #   enableParallel: false # 开启多线程上传，非必填，默认为否
 #   restrict: # 可选选项
 #     priority: contain # 设定优先级，如果标题即满足contain，又满足exclude的时候
