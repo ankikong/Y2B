@@ -29,7 +29,7 @@ def run():
     cookie = user.getCookies()
     db = tool.getDB()
     rs = db.execute(
-        "select distinct bvid from data where zht=false or zhs=false or en=false limit 50;").fetchall()
+        "select distinct bvid from data where zht=false or zhs=false or en=false").fetchall()
     api = "https://api.bilibili.com/x/player/pagelist?bvid="
     s = tool.Session()
     s.cookies.update(cookie)

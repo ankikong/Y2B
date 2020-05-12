@@ -149,7 +149,7 @@ def uploadWithOldBvid(cookie: dict, uploadInfo: dict, videoPath: str):
     success, upos_uri = uploadFile(
         cookie, videoPath, enableParallel=enableParallel)
     if not success:
-        return False
+        return False, "", ""
     s = tool.Session()
     s.cookies.update(cookie)
 
@@ -192,7 +192,7 @@ def uploadWithOldBvid(cookie: dict, uploadInfo: dict, videoPath: str):
     # s.headers.update({"Content-Type": "application/json;charset=UTF-8"})
     res = s.post(url=url, json=send_data).text
     logger.debug(res)
-    return res
+    return True, res, upos_uri
 
 
 def uploadWithNewBvid(cookie: dict, uploadInfo: dict, videoPath: str):
@@ -201,7 +201,7 @@ def uploadWithNewBvid(cookie: dict, uploadInfo: dict, videoPath: str):
     success, upos_uri = uploadFile(
         cookie, videoPath, enableParallel=enableParallel)
     if not success:
-        return False
+        return False, "", ""
     s = tool.Session()
     s.cookies.update(cookie)
     csrf = cookie["bili_jct"]
@@ -243,7 +243,7 @@ def uploadWithNewBvid(cookie: dict, uploadInfo: dict, videoPath: str):
     # s.headers.update({"Content-Type": "application/json;charset=UTF-8"})
     res = s.post(url=url, json=send_data).text
     logger.debug(res)
-    return res
+    return True, res, upos_uri
 
 # if __name__ == "__main__":
 #     get_youtube_url2("iCfr8N0Q8IA")

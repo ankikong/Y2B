@@ -7,6 +7,7 @@ import sys
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler import events
 
+tool.checkChannel()
 
 job = BlockingScheduler(logger=tool.getLogger())
 
@@ -43,7 +44,7 @@ job.add_job(main_upload.jobConsumer,
             next_run_time=datetime.datetime.now())
 
 # 字幕的定时任务暂时不导入
-job.add_job(main_sub.run, **tool.settingConf["Scheduler"]["Subtitle"])
+# job.add_job(main_sub.run, **tool.settingConf["Scheduler"]["Subtitle"])
 
 # 开启定时任务
 job.start()

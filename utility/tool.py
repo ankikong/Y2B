@@ -60,6 +60,26 @@ loggingConf = Config(Config.LOGGING)
 settingConf = Config(Config.SETTING)
 channelConf = Config(Config.CHANNEL)
 
+def checkChannel():
+    for i in channelConf.data:
+        j:dict = channelConf[i]
+        if j.get("platform") not in ["youtube"]:
+            exit("channel.yaml格式错误")
+        if j.get("type") not in ["playlistId", "q"]:
+            exit("channel.yaml格式错误")
+        if j.get("multipart") is None:
+            exit("channel.yaml格式错误")
+        if j.get("multipart") and j.get("bvid") is None:
+            exit("channel.yaml格式错误")
+        if not j.get("multipart") and (
+            j.get("tid") is None or
+            j.get("desc") is None or
+            j.get("tags") is None or
+            j.get("title") is None
+        ):
+            exit("channel.yaml格式错误")
+
+
 # 初始化logger
 logging.config.dictConfig(loggingConf.data)
 
@@ -159,6 +179,8 @@ class DownloadManager:
         self.headers = headers
 
     def download(self):
+        if settingConf["UseCF"]:
+            return self.download2()
         data = {
             "jsonrpc": 2,
             "method": "aria2.addUri",
@@ -264,6 +286,23 @@ class DownloadManager:
         for i in header:
             rs.append(f"{i}: {header[i]}")
         return rs
+
+    def download2(self):
+        secret = settingConf["CF"]["secret"]
+        url = settingConf["CF"]["url"]
+        data = {
+            "id": 1,
+            "jsonrpc": "2.0",
+            "method": "aria2.addUri",
+            "params": [[url], {
+                "header": [f"hello-secret: {secret}", f"hello-url: {self.url}"] + self.getHeaders(),
+                "max-connection-per-server": "16",
+                "out": self.files
+            }]
+        }
+        rs = self._post(data)
+        self._gid = rs['result']
+        return rs
 # download tool end
 
 
@@ -333,6 +372,9 @@ class AccountManager:
         # s = requests.Session()
         # s.verify = False
         # s.headers.update(header)
+
+        userid = str(userid)
+        password = str(password)
 
         keyItem = {
             "appkey": APP_KEY,
@@ -529,12 +571,26 @@ class Thread(threading.Thread):
 # MyThreadTool end
 
 
+def translate(raw: str):
+    api = "https://fanyi.youdao.com/translate"
+    params = {
+        "doctype": "json",
+        "type": "auto",
+        "i": raw
+    }
+    s = Session()
+    rs = s.get(api, params=params).json()
+    return rs["translateResult"][0][0]["tgt"]
+
+
 if __name__ == "__main__":
-    ac = AccountManager("Anki")
-    print(ac.getToken())
-    print(ac.userInformation())
-    print(ac.getMid())
-    cookie = ac.getCookies()
+    # ac = AccountManager("Anki")
+    # print(ac.getToken())
+    # print(ac.userInformation())
+    # print(ac.getMid())
+    # cookie = ac.getCookies()
+    print(translate(
+        "Amazing aero engine manufacturing process. Incredible gas turbine production technology."))
     # rs = requests.get("https://api.bilibili.com/x/web-interface/nav", cookies=cookie).text
     # print(rs)
     # print(Session.get("https://baidu.com", proxies={"https":"http://127.0.0.1:8888"}, verify=False))

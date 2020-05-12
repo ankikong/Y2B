@@ -1,8 +1,15 @@
 # 频道名称:
-#   id: 频道id
+#   enable: true # 是否使用这个规则，默认为false
+#   platform: youtube # 目前只支持youtube
+#   type: playlistId  # 目前只能使用playlistId和q
+#                     # playlistId表示搬运某个频道或者某个集合
+#                     # q是关键词搜索，针对的是全youtube的
+#   param: UUYSAWDQnoz0uIBRYlophvNw # 在type为playlistId是，这里填频道id
+#                                   # 为q时，填要搜索的关键词
 #   hd: true # 是否搬运1080P，false为否，true为是。注意：为true时，必须提前安装ffmpeg，否则会报错！！！！！
-#   pages: 1 # 要搬运前几页，必须为整数
-#   countPerPage: 50 # 每页几个视频，只能在[1-50],其他直接报错，必须为整数，也就是说，会搬运该YouTuber的前pages*countPerPage个视频
+#   pages: 1 # 要搬运前几页，必须为整数，默认为1
+#   countPerPage: 50 # 每页几个视频，只能在[1-50],其他直接报错，必须为整数，也就是说，会搬运该YouTuber的前pages*countPerPage个视频,
+#                    # 默认为10
 #   multipart: true  # 是否将Youtube的多个视频合并为Bilibili的单个视频下的多个分p，只能为true或false
 #                    # false：不分P，一个Youtube视频对应一个Bilibili视频
 #                    # true: 分P，多个Youtub视频对应一个分批
@@ -20,6 +27,13 @@
 #     - 网络爬虫
 #     - python爬虫
 #   title: 【中英/搬运】{title} # 也就是视频的标题，multipart=false时必须填,不能为空！
+#   enableParallel: false # 开启多线程上传，非必填，默认为否
+#   restrict: # 可选选项
+#     priority: contain # 设定优先级，如果标题即满足contain，又满足exclude的时候
+#                       # 如果为contain，那么会搬运
+#                       # 如果为exclude，那么不会搬运
+#     contain: ahh|jjjjj # 类似正则表达式，满足才会搬运,不区分大小写
+#     exclude: fuck|bitch # 类似正则表达式，满足了不搬运,不区分大小写
 
 #    关于格式化：在desc和title中，支持使用{title},然后会自动格式化，比如样例中的“【中英/搬运】{title}”
 #               如果搬运的视频的原title是ahhhh，那么就会被格式化为“【中英/搬运】ahhhh”
@@ -32,26 +46,39 @@
 # id就是把 UCAuUUnT6oDeKwE6v1NGQxug 的第二个字幕改成U就行了
 # 也就是说TED就是：UUAuUUnT6oDeKwE6v1NGQxug
 
-# 以下是两个例子
+# 这个是不分p的格式，只搬运某个频道
 Restore:
-  id: UUYSAWDQnoz0uIBRYlophvNw
+  enable: false
+  platform: youtube
+  type: playlistId
+  param: UUYSAWDQnoz0uIBRYlophvNw
   pages: 1
   hd: true
   countPerPage: 50
+  enableParallel: true
   multipart: false
   tid: 98
-  desc: |            # 格式化后,换行和输入格式相同
-        {title}
-        {ptime}
-        本视频由爬虫抓取，并由爬虫上传
-        字幕请使用b站的外挂字幕,字幕上传需要时间,请等待
-        测试阶段，可能出现数据不准
+  desc: |
+    {title}
+    {ptime}
+    本视频由爬虫抓取，并由爬虫上传
+    字幕请使用b站的外挂字幕,字幕上传需要时间,请等待
+    测试阶段，可能出现数据不准
   tags:
     - Restore It
     - 翻新
     - 网络爬虫
     - python爬虫
   title: 【中英/搬运】{title}
+  restrict: # 可选选项
+    priority: contain # 设定优先级，如果标题即满足contain，又满足exclude的时候
+                      # 如果为contain，那么会搬运
+                      # 如果为exclude，那么不会搬运
+                      # 默认exclude
+    contain: ahh|jjjjj # 类似正则表达式，满足才会搬运
+    exclude: fuck|bitch # 类似正则表达式，满足了不搬运
+
+# 这个是要分p的，只搬运一个频道
 TED:
   id: UUAuUUnT6oDeKwE6v1NGQxug
   pages: 1
@@ -59,3 +86,24 @@ TED:
   countPerPage: 50
   multipart: true
   bvid: BV1Mb411L7Fb
+# 这个是不分P的，在全油管搜索，获取的结果按时间排序
+CSGO:
+  enable: true
+  platform: youtube
+  type: q
+  param: CSGO
+  pages: 1
+  hd: true
+  countPerPage: 10
+  multipart: false
+  enableParallel: true
+  tid: 65
+  desc: |
+    源标题：{title}
+    源上传时间：{ptime}
+    本视频由爬虫抓取，并由爬虫上传
+  tags:
+    - CSGO
+    - 游戏视频
+    - 集锦
+  title: 【搬运】{title}

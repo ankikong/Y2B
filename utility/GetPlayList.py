@@ -1,71 +1,103 @@
 import json
 from utility import tool
+import re
 
 
-def get_work_list():
+def filters(settings:dict, title:str) -> bool:
+    if settings.get("restrict") is None:
+        return True
+    rs = settings.get("restrict")
+    contain = rs.get("contain")
+    exclude = rs.get("exclude")
+    priority = rs.get("priority", "exclude")
+    if priority == "exclude":
+        if re.search(exclude, title, flags=re.IGNORECASE) is not None:
+            return False
+        if re.search(contain, title, flags=re.IGNORECASE) is not None:
+            return True
+        return False
+    else:
+        if re.search(contain, title, flags=re.IGNORECASE) is not None:
+            return True
+        return False
+
+def getYTB(settings:dict) -> list:
     logger = tool.getLogger()
+    _return = []
+    if not settings.get("enable", False):
+        return _return
     api_key = tool.settingConf["GoogleToken"]
     db = tool.getDB()
+    s = tool.Session()
+    params = {
+        "part": "snippet",
+        settings["type"]: settings["param"],
+        "key": api_key,
+        "maxResults": settings.get("countPerPage", 10),
+        "pageToken": None
+    }
+    pages = int(settings.get("pages", 1))
+    if settings["type"] == "q":
+        url = "https://www.googleapis.com/youtube/v3/search"
+    elif settings["type"] == "playlistId":
+        url = "https://www.googleapis.com/youtube/v3/playlistItems"
+    for _ in range(pages):
+        _res: dict = s.get(url, params=params, useProxy=True).json()
+        if _res.get("error") is not None:
+            _res = _res["error"]
+            logger.error(
+                f"code[{_res['code']}],message[{_res['message']}]")
+            logger.error(f"获取视频失败，请检查配置文件setting.yaml")
+            break
+        for __ in _res["items"]:
+            tmp_data = __["snippet"]
+            id_tmp = tmp_data.get("resourceId") or __.get("id")
+            video_id = id_tmp["videoId"]
+            db_res = db.execute(
+                "select count(vid) from data where vid=?;", (video_id, )).fetchone()[0]
+            if int(db_res) != 0:
+                # print(video_id)
+                continue
+            tmpTitle = tmp_data["title"]
+            if not filters(settings, tmpTitle):
+                continue
+            tmpRs = settings.copy()
+            tmpRs.update({
+                "title": tmpTitle[0:min(80, len(tmpTitle))],  # 破站限制长度
+                "id": video_id,
+                "ptitle": str(settings.get("title", "")).format(title=tmpTitle,
+                                                                ctitle=tmp_data["channelTitle"],
+                                                                ptime=tmp_data["publishedAt"],
+                                                                surl="https://www.youtube.com/watch?v=" + video_id),
+                "desc": str(settings.get("desc", "")).format(title=tmpTitle,
+                                                                ctitle=tmp_data["channelTitle"],
+                                                                ptime=tmp_data["publishedAt"],
+                                                                surl="https://www.youtube.com/watch?v=" + video_id)
+            })
+            # tmpRs["tags"] = tmpRs.get("tags", "").split(",")
+
+            ptitle = tmpRs.get("ptitle", "")
+            ptitle = ptitle[0:min(80, len(ptitle))]
+            tmpRs["ptitle"] = ptitle
+
+            desc = tmpRs.get("desc", "")
+            desc = desc[0:min(250, len(desc))]
+            tmpRs["desc"] = desc
+
+            _return.append(tmpRs)
+        params["pageToken"] = _res.get("nextPageToken", None)
+        if _res.get("nextPageToken", None) is None:
+            break
+    db.close()
+    return _return
+
+def get_work_list():
     _return = []
     channel = tool.channelConf
-    s = tool.Session()
     for i in channel.data:
-        settings = channel[i]
-        pages = int(settings["pages"])
-        params = {
-            "part": "snippet",
-            "playlistId": settings["id"],
-            "key": api_key,
-            "maxResults": settings["countPerPage"],
-            "pageToken": None
-        }
-        for _ in range(pages):
-            url = "https://www.googleapis.com/youtube/v3/playlistItems"
-            _res: dict = s.get(url, params=params, useProxy=True).json()
-            if _res.get("error") is not None:
-                _res = _res["error"]
-                logger.error(
-                    f"code[{_res['code']}],message[{_res['message']}]")
-                logger.error(f"获取视频失败，请检查配置文件setting.yaml的[{i}]")
-                break
-            for __ in _res["items"]:
-                tmp_data = __["snippet"]
-                video_id = tmp_data["resourceId"]["videoId"]
-                db_res = db.execute(
-                    "select count(vid) from data where vid=?;", (video_id, )).fetchone()[0]
-                if int(db_res) != 0:
-                    # print(video_id)
-                    continue
-                tmpTitle = tmp_data["title"]
-                tmpRs = settings.copy()
-                tmpRs.update({
-                    "title": tmpTitle[0:min(80, len(tmpTitle))],  # 破站限制长度
-                    "id": video_id,
-                    "ptitle": str(settings.get("title", "")).format(title=tmpTitle,
-                                                                    ctitle=tmp_data["channelTitle"],
-                                                                    ptime=tmp_data["publishedAt"],
-                                                                    surl="https://www.youtube.com/watch?v=" + video_id),
-                    "desc": str(settings.get("desc", "")).format(title=tmpTitle,
-                                                                 ctitle=tmp_data["channelTitle"],
-                                                                 ptime=tmp_data["publishedAt"],
-                                                                 surl="https://www.youtube.com/watch?v=" + video_id)
-                })
-                # tmpRs["tags"] = tmpRs.get("tags", "").split(",")
-
-                ptitle = tmpRs.get("ptitle", "")
-                ptitle = ptitle[0:min(80, len(ptitle))]
-                tmpRs["ptitle"] = ptitle
-
-                desc = tmpRs.get("desc", "")
-                desc = desc.replace("\\n", "\n")
-                desc = desc[0:min(250, len(desc))]
-                tmpRs["desc"] = desc
-
-                _return.append(tmpRs)
-            params["pageToken"] = _res.get("nextPageToken", None)
-            if _res.get("nextPageToken", None) is None:
-                break
-    db.close()
+        settings:dict = channel[i]
+        if settings["platform"] == "youtube":
+            _return += getYTB(settings)
     return _return
 
 

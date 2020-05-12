@@ -25,20 +25,21 @@ def run():
         data = vmer.getVideo()
         if data[0]:
             if i["multipart"]:
-                res = Upload.uploadWithOldBvid(
+                success, res, upos_uri = Upload.uploadWithOldBvid(
                     account.getCookies(), i, data[1])
             else:
-                res = Upload.uploadWithNewBvid(
+                success, res, upos_uri = Upload.uploadWithNewBvid(
                     account.getCookies(), i, data[1])
-            if type(res) == bool:
+            if not success:
                 continue
+            upos_uri = upos_uri.split(".")[0]
             res = json.loads(res)
             if res["code"] != 0:
                 logger.error(res["message"])
                 continue
             with tool.getDB() as db:
-                db.execute("insert into data(vid,bvid,title) values(?,?,?);",
-                           (i["id"], res["data"]["bvid"], i["title"]))
+                db.execute("insert into data(vid,bvid,title,filename) values(?,?,?,?);",
+                           (i["id"], res["data"]["bvid"], i["title"], upos_uri))
                 db.commit()
             logger.info(f"finished, bvid[{res['data']['bvid']}]")
             vmer.deleteFile()
@@ -76,31 +77,27 @@ def __consume():
         vmer = getVideo.VideoManager(i["id"], i["hd"])
         data = vmer.getVideo()
         if data[0]:
-            logger.info("download done")
-            cookie = account.getCookies()
-            logger.info("get cookie done")
             if i["multipart"]:
-                res = Upload.uploadWithOldBvid(
-                    cookie, i, data[1])
+                success, res, upos_uri = Upload.uploadWithOldBvid(
+                    account.getCookies(), i, data[1])
             else:
-                res = Upload.uploadWithNewBvid(
-                    cookie, i, data[1])
-            if type(res) == bool:
+                success, res, upos_uri = Upload.uploadWithNewBvid(
+                    account.getCookies(), i, data[1])
+            if not success:
                 continue
+            upos_uri = upos_uri.split(".")[0]
             res = json.loads(res)
             if res["code"] != 0:
                 logger.error(res["message"])
-                unique.remove(i["id"])
                 continue
             with tool.getDB() as db:
-                db.execute("insert into data(vid,bvid,title) values(?,?,?);",
-                           (i["id"], res["data"]["bvid"], i["title"]))
+                db.execute("insert into data(vid,bvid,title,filename) values(?,?,?,?);",
+                           (i["id"], res["data"]["bvid"], i["title"], upos_uri))
                 db.commit()
             logger.info(f"finished, bvid[{res['data']['bvid']}]")
             vmer.deleteFile()
         else:
             logger.error("download failed")
-            unique.remove(i["id"])
 
 
 def jobConsumer():
