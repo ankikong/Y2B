@@ -3,7 +3,7 @@ from utility import tool
 import re
 
 
-def filters(settings:dict, title:str) -> bool:
+def filters(settings: dict, title: str) -> bool:
     if settings.get("restrict") is None:
         return True
     rs = settings.get("restrict")
@@ -11,17 +11,23 @@ def filters(settings:dict, title:str) -> bool:
     exclude = rs.get("exclude")
     priority = rs.get("priority", "exclude")
     if priority == "exclude":
-        if re.search(exclude, title, flags=re.IGNORECASE) is not None:
+        if exclude is not None and re.search(exclude, title, flags=re.IGNORECASE) is not None:
             return False
-        if re.search(contain, title, flags=re.IGNORECASE) is not None:
+        if contain is None or re.search(contain, title, flags=re.IGNORECASE) is not None:
             return True
         return False
     else:
-        if re.search(contain, title, flags=re.IGNORECASE) is not None:
+        if contain is None and \
+            exclude is not None and \
+            re.search(exclude, title, flags=re.IGNORECASE) is not None:
+            return False
+        if contain is not None and \
+            re.search(contain, title, flags=re.IGNORECASE) is not None:
             return True
         return False
 
-def getYTB(settings:dict) -> list:
+
+def getYTB(settings: dict) -> list:
     logger = tool.getLogger()
     _return = []
     if not settings.get("enable", False):
@@ -70,9 +76,9 @@ def getYTB(settings:dict) -> list:
                                                                 ptime=tmp_data["publishedAt"],
                                                                 surl="https://www.youtube.com/watch?v=" + video_id),
                 "desc": str(settings.get("desc", "")).format(title=tmpTitle,
-                                                                ctitle=tmp_data["channelTitle"],
-                                                                ptime=tmp_data["publishedAt"],
-                                                                surl="https://www.youtube.com/watch?v=" + video_id)
+                                                             ctitle=tmp_data["channelTitle"],
+                                                             ptime=tmp_data["publishedAt"],
+                                                             surl="https://www.youtube.com/watch?v=" + video_id)
             })
             # tmpRs["tags"] = tmpRs.get("tags", "").split(",")
 
@@ -91,11 +97,12 @@ def getYTB(settings:dict) -> list:
     db.close()
     return _return
 
+
 def get_work_list():
     _return = []
     channel = tool.channelConf
     for i in channel.data:
-        settings:dict = channel[i]
+        settings: dict = channel[i]
         if settings["platform"] == "youtube":
             _return += getYTB(settings)
     return _return

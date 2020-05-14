@@ -210,7 +210,10 @@ def uploadWithNewBvid(cookie: dict, uploadInfo: dict, videoPath: str):
         vid = uploadInfo["id"]
         __url = "https://member.bilibili.com/x/vu/web/cover/up"
         __imgURL = f"https://i1.ytimg.com/vi/{vid}/maxresdefault.jpg"
+        __imgURL2 = f"https://i1.ytimg.com/vi/{vid}/hqdefault.jpg"
         __rs = s.get(__imgURL, useProxy=True, wantStatusCode=200)
+        if __rs is None:
+            __rs = s.get(__imgURL2, useProxy=True, wantStatusCode=200)
         __send = {"cover": "data:image/jpeg;base64," +
                   base64.b64encode(__rs.content).decode(),
                   "csrf": csrf

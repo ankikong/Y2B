@@ -153,7 +153,7 @@ class Session(requests.Session):
             time.sleep(nowDelay)
             nowDelay += nowDelay
         logger.error(f"network, {method} {url} want[{wantStatusCode}]")
-        raise Exception("check network status")
+        return None
 
     def get(self, url, useProxy: bool = False, wantStatusCode: int = None, **args) -> requests.models.Response:
         return self.req("GET", url, useProxy, wantStatusCode, **args)
