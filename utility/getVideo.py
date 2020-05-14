@@ -65,6 +65,8 @@ class VideoManager:
                     break
 
         logger.info(f"{self.vid}:v[{urlv is not None}],a[{urls is not None}]")
+        logger.debug(f"v[{urlv}]")
+        logger.debug(f"a[{urls}]")
         if urlv is None:
             return False, ""
         cmd = ffmpegPath + ' -i "{}" -i "{}" ' + ffmpegArgs + ' "{}"'
