@@ -46,7 +46,7 @@ class VideoManager:
 
         urlv = None
         urls = None
-        for i in ["299", "137"]:
+        for i in ["299", "137", "298"]:
             if self._hd and rs.get(i) is not None:
                 urlv = rs[i]["url"]
                 break
