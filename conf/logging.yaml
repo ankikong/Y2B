@@ -17,6 +17,7 @@ handlers:
     class: logging.handlers.RotatingFileHandler
     formatter: default
     filename: logs/{}.log
+    encoding: utf-8
     maxBytes: 524288
 loggers:
   file:
