@@ -68,7 +68,7 @@ def getYTB(settings: dict) -> list:
                 continue
             tmpTitle = tmp_data["title"]
             if settings.get("titleTranslate", False):
-                tmpTitle = tool.translate(tmpTitle)
+                tmpTitle = tool.translateG(tmpTitle)
             logger.debug(tmpTitle)
             if not filters(settings, tmpTitle):
                 logger.debug(f"{tmpTitle} not fixed")

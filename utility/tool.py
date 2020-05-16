@@ -586,13 +586,30 @@ def translate(raw: str):
     return rs["translateResult"][0][0]["tgt"]
 
 
+def translateG(raw: str):
+    url = "https://translate.googleapis.com/translate_a/single"
+    params = {
+        "client": "gtx",
+        "sl": "auto",
+        "tl": "zh-CN",
+        "dt": "t",
+        "dj": "1",
+        "q": raw
+    }
+    s = Session()
+    _rs = s.get(url, params=params, useProxy=True).json()
+    res = ""
+    for i in _rs["sentences"]:
+        res += i["trans"]
+    return res
+
 if __name__ == "__main__":
     # ac = AccountManager("Anki")
     # print(ac.getToken())
     # print(ac.userInformation())
     # print(ac.getMid())
     # cookie = ac.getCookies()
-    print(translate(
+    print(translateG(
         "Amazing aero engine manufacturing process. Incredible gas turbine production technology."))
     # rs = requests.get("https://api.bilibili.com/x/web-interface/nav", cookies=cookie).text
     # print(rs)
