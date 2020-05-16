@@ -140,6 +140,7 @@ class VideoManager:
                           "channel": "one"},
                     useProxy=True,
                     wantStatusCode=200).json()
+        s.close()
         return rs
 
 # if __name__ == "__main__":

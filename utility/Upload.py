@@ -246,6 +246,7 @@ def uploadWithNewBvid(cookie: dict, uploadInfo: dict, videoPath: str):
     # s.headers.update({"Content-Type": "application/json;charset=UTF-8"})
     res = s.post(url=url, json=send_data).text
     logger.debug(res)
+    s.close()
     return True, res, upos_uri
 
 # if __name__ == "__main__":

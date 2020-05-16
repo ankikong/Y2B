@@ -98,6 +98,7 @@ def getYTB(settings: dict) -> list:
         if _res.get("nextPageToken", None) is None:
             break
     db.close()
+    s.close()
     return _return
 
 
