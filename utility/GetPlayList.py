@@ -1,6 +1,7 @@
 import json
 from utility import tool
 import re
+from random import randint
 
 
 def filters(settings: dict, title: str) -> bool:
@@ -38,7 +39,7 @@ def getYTB(settings: dict) -> list:
     params = {
         "part": "snippet",
         settings["type"]: settings["param"],
-        "key": api_key,
+        "key": api_key[randint(0, len(api_key)-1)],
         "maxResults": settings.get("countPerPage", 10),
         "order": "date",
         "type": "video",
