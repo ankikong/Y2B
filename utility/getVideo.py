@@ -48,12 +48,18 @@ class VideoManager:
         urls = None
         for i in ["299", "137", "298"]:
             if self._hd and rs.get(i) is not None:
-                urlv = rs[i]["url"]
+                if rs[i]["protocol"] == "http_dash_segments":
+                    urlv = rs[i]['fragment_base_url']
+                else:
+                    urlv = rs[i]["url"]
                 break
 
         for i in ["141", "140", "139"]:
             if urlv is not None and rs.get(i) is not None:
-                urls = rs[i]["url"]
+                if rs[i]["protocol"] == "http_dash_segments":
+                    urls = rs[i]['fragment_base_url']
+                else:
+                    urls = rs[i]["url"]
                 break
 
         if urlv is None or urls is None:
@@ -61,7 +67,10 @@ class VideoManager:
             urls = None
             for i in ["22", "18"]:
                 if rs.get(i) is not None:
-                    urlv = rs[i]["url"]
+                    if rs[i]["protocol"] == "http_dash_segments":
+                        urlv = rs[i]['fragment_base_url']
+                    else:
+                        urlv = rs[i]["url"]
                     break
 
         logger.info(f"{self.vid}:v[{urlv is not None}],a[{urls is not None}]")
