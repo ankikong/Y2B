@@ -66,7 +66,9 @@ def getYTB(settings: dict) -> list:
                 # print(video_id)
                 continue
             tmpTitle = tmp_data["title"]
+            logger.debug(tmpTitle)
             if not filters(settings, tmpTitle):
+                logger.debug(f"{tmpTitle} not fixed")
                 continue
             tmpRs = settings.copy()
             tmpRs.update({
