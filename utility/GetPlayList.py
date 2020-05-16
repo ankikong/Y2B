@@ -18,11 +18,11 @@ def filters(settings: dict, title: str) -> bool:
         return False
     else:
         if contain is None and \
-            exclude is not None and \
-            re.search(exclude, title, flags=re.IGNORECASE) is not None:
+                exclude is not None and \
+                re.search(exclude, title, flags=re.IGNORECASE) is not None:
             return False
         if contain is not None and \
-            re.search(contain, title, flags=re.IGNORECASE) is not None:
+                re.search(contain, title, flags=re.IGNORECASE) is not None:
             return True
         return False
 
@@ -40,6 +40,7 @@ def getYTB(settings: dict) -> list:
         settings["type"]: settings["param"],
         "key": api_key,
         "maxResults": settings.get("countPerPage", 10),
+        "order": "date",
         "pageToken": None
     }
     pages = int(settings.get("pages", 1))
