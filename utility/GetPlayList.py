@@ -44,10 +44,11 @@ def getYTB(settings: dict) -> list:
         "pageToken": None
     }
     pages = int(settings.get("pages", 1))
-    if settings["type"] == "q":
-        url = "https://www.googleapis.com/youtube/v3/search"
-    elif settings["type"] == "playlistId":
-        url = "https://www.googleapis.com/youtube/v3/playlistItems"
+    url = "https://www.googleapis.com/youtube/v3/search"
+    # if settings["type"] == "q":
+    #     url = "https://www.googleapis.com/youtube/v3/search"
+    # elif settings["type"] == "playlistId":
+    #     url = "https://www.googleapis.com/youtube/v3/playlistItems"
     for _ in range(pages):
         _res: dict = s.get(url, params=params, useProxy=True).json()
         if _res.get("error") is not None:
