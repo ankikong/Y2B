@@ -41,6 +41,7 @@ def getYTB(settings: dict) -> list:
         "key": api_key,
         "maxResults": settings.get("countPerPage", 10),
         "order": "date",
+        "type": "video",
         "pageToken": None
     }
     pages = int(settings.get("pages", 1))
