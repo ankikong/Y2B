@@ -1,10 +1,10 @@
 # 频道名称:
 #   enable: true # 是否使用这个规则，默认为false
 #   platform: youtube # 目前只支持youtube
-#   type: channelId  # 目前只能使用channelId和q
-#                     # channelId表示搬运某个频道或者某个集合
+#   type: playlistId  # 目前只能使用playlistId和q
+#                     # playlistId表示搬运某个频道或者某个集合
 #                     # q是关键词搜索，针对的是全youtube的
-#   param: UCYSAWDQnoz0uIBRYlophvNw # 在type为channelId是，这里填频道id
+#   param: UUYSAWDQnoz0uIBRYlophvNw # 在type为playlistId是，这里填频道id
 #                                   # 为q时，填要搜索的关键词
 #   hd: true # 是否搬运1080P，false为否，true为是。注意：为true时，必须提前安装ffmpeg，否则会报错！！！！！
 #   pages: 1 # 要搬运前几页，必须为整数，默认为1
@@ -44,14 +44,14 @@
 #    注意：由于b站限制视频描述和标题长度，请自行保证格式化后的长度不会超过要求，否则会报错！！！
 # 如何获取频道id：
 # 例如TED频道：https://www.youtube.com/channel/UCAuUUnT6oDeKwE6v1NGQxug
-# id就是 UCAuUUnT6oDeKwE6v1NGQxug
+# id就是 UUAuUUnT6oDeKwE6v1NGQxug
 
 # 这个是不分p的格式，只搬运某个频道
 Restore:
   enable: false
   platform: youtube
-  type: channelId
-  param: UCYSAWDQnoz0uIBRYlophvNw
+  type: playlistId
+  param: UUYSAWDQnoz0uIBRYlophvNw
   pages: 1
   hd: true
   countPerPage: 50
@@ -80,7 +80,7 @@ Restore:
 
 # 这个是要分p的，只搬运一个频道
 TED:
-  id: UCAuUUnT6oDeKwE6v1NGQxug
+  id: UUAuUUnT6oDeKwE6v1NGQxug
   pages: 1
   hd: true
   countPerPage: 50
