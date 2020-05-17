@@ -49,7 +49,9 @@ class VideoManager:
         for i in ["299", "137", "298"]:
             if self._hd and rs.get(i) is not None:
                 if rs[i]["protocol"] == "http_dash_segments":
-                    urlv = rs[i]['fragment_base_url']
+                    # urlv = rs[i]['fragment_base_url']
+                    logger.error("分段视频，暂未支持")
+                    return False, ""
                 else:
                     urlv = rs[i]["url"]
                 break
@@ -57,7 +59,9 @@ class VideoManager:
         for i in ["141", "140", "139"]:
             if urlv is not None and rs.get(i) is not None:
                 if rs[i]["protocol"] == "http_dash_segments":
-                    urls = rs[i]['fragment_base_url']
+                    # urls = rs[i]['fragment_base_url']
+                    logger.error("分段视频，暂未支持")
+                    return False, ""
                 else:
                     urls = rs[i]["url"]
                 break
