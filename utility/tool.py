@@ -66,8 +66,8 @@ def checkChannel():
         j: dict = channelConf[i]
         if j.get("platform") not in ["youtube"]:
             exit("channel.yaml格式错误, platform只能为youtube")
-        if j.get("type") not in ["channelId", "q"]:
-            exit("channel.yaml格式错误， type只能为channelId，q")
+        if j.get("type") not in ["playlistId", "q"]:
+            exit("channel.yaml格式错误， type只能为playlistId，q")
         if j.get("param") is None:
             exit("channel.yaml格式错误")
         if j.get("multipart") is None:

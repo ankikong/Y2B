@@ -29,6 +29,10 @@ def filters(settings: dict, title: str) -> bool:
 
 
 def getYTB(settings: dict) -> list:
+
+    def getKey(item):
+        return item["snippet"]["publishedAt"]
+
     logger = tool.getLogger()
     _return = []
     if not settings.get("enable", False):
@@ -40,26 +44,28 @@ def getYTB(settings: dict) -> list:
         "part": "snippet",
         settings["type"]: settings["param"],
         "key": api_key[randint(0, len(api_key)-1)],
-        "maxResults": settings.get("countPerPage", 10),
+        # "maxResults": settings.get("countPerPage", 10),
+        "maxResults": 50,
         "order": "date",
-        "type": "video",
         "pageToken": None
     }
-    pages = int(settings.get("pages", 1))
-    url = "https://www.googleapis.com/youtube/v3/search"
-    # if settings["type"] == "q":
-    #     url = "https://www.googleapis.com/youtube/v3/search"
-    # elif settings["type"] == "playlistId":
-    #     url = "https://www.googleapis.com/youtube/v3/playlistItems"
+    # pages = int(settings.get("pages", 1))
+    pages = 1
+    # url = "https://www.googleapis.com/youtube/v3/search"
+    if settings["type"] == "q":
+        url = "https://www.googleapis.com/youtube/v3/search"
+    elif settings["type"] == "playlistId":
+        url = "https://www.googleapis.com/youtube/v3/playlistItems"
     for _ in range(pages):
         _res: dict = s.get(url, params=params, useProxy=True).json()
         if _res.get("error") is not None:
             _res = _res["error"]
             logger.error(
                 f"code[{_res['code']}],message[{_res['message']}]")
-            logger.error(f"获取视频失败，请检查配置文件setting.yaml")
+            logger.error(f"获取视频失败，请检查配置文件setting.yaml，或可能为配额已用完")
             break
-        for __ in _res["items"]:
+        _res["items"].sort(key=getKey, reverse=True)
+        for __ in _res["items"][0:settings.get("countPerPage", 10)]:
             tmp_data = __["snippet"]
             id_tmp = tmp_data.get("resourceId") or __.get("id")
             video_id = id_tmp["videoId"]
