@@ -75,6 +75,7 @@ def getYTB(settings: dict) -> list:
                 # print(video_id)
                 continue
             tmpTitle = tmp_data["title"]
+            stitle = tmp_data["title"]
             if settings.get("titleTranslate", False):
                 tmpTitle = tool.translateG(tmpTitle)
             logger.debug(tmpTitle)
@@ -88,11 +89,13 @@ def getYTB(settings: dict) -> list:
                 "ptitle": str(settings.get("title", "")).format(title=tmpTitle,
                                                                 ctitle=tmp_data["channelTitle"],
                                                                 ptime=tmp_data["publishedAt"],
-                                                                surl="https://www.youtube.com/watch?v=" + video_id),
+                                                                surl="https://www.youtube.com/watch?v=" + video_id,
+                                                                stitle=stitle),
                 "desc": str(settings.get("desc", "")).format(title=tmpTitle,
                                                              ctitle=tmp_data["channelTitle"],
                                                              ptime=tmp_data["publishedAt"],
-                                                             surl="https://www.youtube.com/watch?v=" + video_id)
+                                                             surl="https://www.youtube.com/watch?v=" + video_id,
+                                                             stitle=stitle)
             })
             # tmpRs["tags"] = tmpRs.get("tags", "").split(",")
 

@@ -244,8 +244,16 @@ def uploadWithNewBvid(cookie: dict, uploadInfo: dict, videoPath: str):
                  }
     logger.debug(json.dumps(send_data))
     # s.headers.update({"Content-Type": "application/json;charset=UTF-8"})
-    res = s.post(url=url, json=send_data).text
-    logger.debug(res)
+    while True:
+        res = s.post(url=url, json=send_data).text
+        logger.debug(res)
+        code = json.loads(res)["code"]
+        if code == 0:
+            break
+        if code == 21070:
+            time.sleep(20)
+        else:
+            logger.error(f"未知状态码{code}")
     s.close()
     return True, res, upos_uri
 

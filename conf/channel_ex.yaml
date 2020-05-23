@@ -38,6 +38,8 @@
 
 #    关于格式化：在desc和title中，支持使用{title},然后会自动格式化，比如样例中的“【中英/搬运】{title}”
 #               如果搬运的视频的原title是ahhhh，那么就会被格式化为“【中英/搬运】ahhhh”
+#               {title} 机翻标题,只有在titleTranslate为true时才有效，否则该值与stitle会是一致的
+#               {stitle} 原标题
 #               {ptime} 源视频发布时间
 #               {ctitle} 源视频的发布者的名字
 #               {surl} 源视频地址
@@ -72,9 +74,9 @@ Restore:
   title: 【中英/搬运】{title}
   restrict: # 可选选项
     priority: contain # 设定优先级，如果标题即满足contain，又满足exclude的时候
-                      # 如果为contain，那么会搬运
-                      # 如果为exclude，那么不会搬运
-                      # 默认exclude
+    # 如果为contain，那么会搬运
+    # 如果为exclude，那么不会搬运
+    # 默认exclude
     contain: ahh|jjjjj # 类似正则表达式，满足才会搬运
     exclude: fuck|bitch # 类似正则表达式，满足了不搬运
 
