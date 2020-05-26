@@ -103,7 +103,7 @@ class Session(requests.Session):
 
     def __init__(self):
         super(Session, self).__init__()
-        self.proxy = settingConf["Proxy"]
+        self.proxy = settingConf.get("Proxy")
         self.timeouts: tuple = (120, 240)
         self.retryDelay: int = 1
         self.retry: int = 8
@@ -602,6 +602,7 @@ def translateG(raw: str):
     for i in _rs["sentences"]:
         res += i["trans"]
     return res
+
 
 if __name__ == "__main__":
     # ac = AccountManager("Anki")

@@ -17,7 +17,7 @@ class VideoManager:
 
     def getVideo(self):
         rs = {}
-        proxy = tool.settingConf["Proxy"]
+        proxy = tool.settingConf.get("Proxy")
         jsonrpc = tool.settingConf["Aria"]["jsonrpc"]
         ffmpegArgs = tool.settingConf["FFMPEG"]["args"]
         ffmpegPath = tool.settingConf["FFMPEG"]["path"]
