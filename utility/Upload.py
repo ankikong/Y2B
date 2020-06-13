@@ -147,7 +147,7 @@ def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
 
 def uploadWithOldBvid(cookie: dict, uploadInfo: dict, videoPath: str):
     logger = tool.getLogger()
-    enableParallel = uploadInfo.get("enableParallel", False)
+    enableParallel = uploadInfo.get("enableParallel", True)
     success, upos_uri = uploadFile(
         cookie, videoPath, enableParallel=enableParallel)
     if not success:
@@ -199,7 +199,7 @@ def uploadWithOldBvid(cookie: dict, uploadInfo: dict, videoPath: str):
 
 def uploadWithNewBvid(cookie: dict, uploadInfo: dict, videoPath: str):
     logger = tool.getLogger()
-    enableParallel = uploadInfo.get("enableParallel", False)
+    enableParallel = uploadInfo.get("enableParallel", True)
     success, upos_uri = uploadFile(
         cookie, videoPath, enableParallel=enableParallel)
     if not success:
