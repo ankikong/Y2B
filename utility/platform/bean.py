@@ -3,6 +3,7 @@ import os
 import uuid
 from utility import tool
 import youtube_dl
+import json
 
 
 class Video:
@@ -20,11 +21,15 @@ class Video:
             try:
                 self.youtube_dlParams["proxy"] = proxy
                 self.youtube_dlParams["outtmpl"] = self.__name
-                self.youtube_dlParams["logger"] = self.__log
                 self.youtube_dlParams["format"] = self.youtube_dlParams.get(
                     "format", "bestvideo[ext=mp4]+bestaudio[ext=m4a]")
+                self.youtube_dlParams["format"] = self.channelParam.get(
+                    "format", self.youtube_dlParams["format"])  # 频道配置优先级最高
                 url = self.channelParam["url"]
-                self.__log.debug("start download")
+                self.__log.debug(
+                    f"start download: {json.dumps(self.youtube_dlParams)}")
+                # logger无法序列化，放在打印记录之后
+                self.youtube_dlParams["logger"] = self.__log
                 ydl = youtube_dl.YoutubeDL(self.youtube_dlParams)
                 ydl.extract_info(url, download=True)
                 self.__log.debug("finish download")
