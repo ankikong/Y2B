@@ -30,7 +30,7 @@ class Video:
                 self.__log.debug("finish download")
                 return True
             except Exception as e:
-                self.__log.error(str(e), exc_info=True)
+                self.__log.debug(str(e), exc_info=True)
         return False
 
     def path(self) -> str:
