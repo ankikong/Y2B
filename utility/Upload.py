@@ -31,6 +31,8 @@ def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
         start = time.time()
         tRs = s.put(testURL, data=testContent)
         LCost = time.time() - start
+        logger.debug(
+            f"url:{i['probe_url']};code:{tRs.status_code};cost:{LCost}")
         if tRs.status_code == 200 and "NGINX_OK" in tRs.text and LCost < cost:
             cost = LCost
             upos = i["os"]

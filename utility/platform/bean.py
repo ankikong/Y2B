@@ -16,20 +16,21 @@ class Video:
     def download(self, proxy: str = "") -> bool:
         """ 阻塞下载视频,返回值表示是否下载成功
         """
-        try:
-            self.youtube_dlParams["proxy"] = proxy
-            self.youtube_dlParams["outtmpl"] = self.__name
-            self.youtube_dlParams["logger"] = self.__log
-            self.youtube_dlParams["format"] = self.youtube_dlParams.get(
-                "format", "bestvideo[ext=mp4]+bestaudio[ext=m4a]")
-            url = self.channelParam["url"]
-            self.__log.debug("start download")
-            ydl = youtube_dl.YoutubeDL(self.youtube_dlParams)
-            ydl.extract_info(url, download=True)
-            self.__log.debug("finish download")
-            return True
-        except Exception as e:
-            self.__log.error(str(e), exc_info=True)
+        for _ in range(10):
+            try:
+                self.youtube_dlParams["proxy"] = proxy
+                self.youtube_dlParams["outtmpl"] = self.__name
+                self.youtube_dlParams["logger"] = self.__log
+                self.youtube_dlParams["format"] = self.youtube_dlParams.get(
+                    "format", "bestvideo[ext=mp4]+bestaudio[ext=m4a]")
+                url = self.channelParam["url"]
+                self.__log.debug("start download")
+                ydl = youtube_dl.YoutubeDL(self.youtube_dlParams)
+                ydl.extract_info(url, download=True)
+                self.__log.debug("finish download")
+                return True
+            except Exception as e:
+                self.__log.error(str(e), exc_info=True)
         return False
 
     def path(self) -> str:
