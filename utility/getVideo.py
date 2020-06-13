@@ -3,6 +3,7 @@ import os
 from utility import tool
 import youtube_dl
 from urllib import parse
+import json
 
 
 class VideoManager:
@@ -155,6 +156,23 @@ class VideoManager:
                     wantStatusCode=200).json()
         s.close()
         return rs
+    
+    def getVideoUrlByYoutubeApi(self):
+        s = tool.Session()
+        s.headers.update({
+            "X-Requested-With": "XMLHttpRequest",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36",
+            "Accept": "*/*",
+            "Origin": "https://www.youtube.com/",
+            "Referer": "https://www.youtube.com/",
+            "Accept-Language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6",
+        })
+        url = f"https://www.youtube.com/get_video_info?video_id={self.vid}"
+        rs = s.get(url, useProxy=True).text
+        a = parse.parse_qs(rs.text)
+        a = json.loads(a['player_response'][0])['streamingData']['adaptiveFormats']
+
+        s.close()
 
 # if __name__ == "__main__":
 #     print(GetVideo.getUrl("https://www.youtube.com/watch?v=7FDyF8gVoL8"))

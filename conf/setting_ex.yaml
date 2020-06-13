@@ -7,8 +7,11 @@ FFMPEG:
   args: -c:v copy -c:a copy
   path: ffmpeg # 修改为ffmpeg的完整路径.注意,是完整路径,假如ffmpeg在C:/bin/文件夹下,那么要填C:/bin/ffmpeg
                # 如果ffmpeg在环境变量中,只填一个ffmpeg也是可以的
-GoogleToken: 
-  - 修改为自己的Google api token
+Platform:
+  youtube:
+    GoogleToken:
+    - 修改为自己的Google api token1， 支持多token
+    - 修改为自己的Google api token2， 支持多token
 #  - 修改为自己的Google api token2， 支持多token
 Proxy: http://127.0.0.1:10809 # 不使用代理只需留空
 # Scheduler使用的是APScheduled模块

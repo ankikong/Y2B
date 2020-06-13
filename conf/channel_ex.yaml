@@ -8,6 +8,7 @@
 #                                   # 为q时，填要搜索的关键词
 #   hd: true # 是否搬运1080P，false为否，true为是。注意：为true时，必须提前安装ffmpeg，否则会报错！！！！！
 #   pages: 1 # 要搬运前几页，必须为整数，默认为1
+#   format: bestvideo[ext=mp4]+bestaudio[ext=m4a] # youtube-dl下载的格式，不过暂时不支持
 #   countPerPage: 50 # 每页几个视频，只能在[1-50],其他直接报错，必须为整数，也就是说，会搬运该YouTuber的前pages*countPerPage个视频,
 #                    # 默认为10
 #   multipart: true  # 是否将Youtube的多个视频合并为Bilibili的单个视频下的多个分p，只能为true或false
@@ -55,6 +56,7 @@ Restore:
   type: playlistId
   param: UUYSAWDQnoz0uIBRYlophvNw
   pages: 1
+  format: bestvideo[ext=mp4]+bestaudio[ext=m4a]
   hd: true
   countPerPage: 50
   enableParallel: true

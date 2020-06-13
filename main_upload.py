@@ -3,6 +3,7 @@ import json
 from utility import tool
 from queue import Queue
 import threading
+from utility.platform.factory import VideoFactory
 
 # 生产者-消费者模型
 buffer = Queue()
@@ -50,11 +51,24 @@ def run():
 def jobProducer():
     logger = tool.getLogger()
     logger.debug("start video Producer")
+    channel = tool.channelConf
+    db = tool.getDB()
+    workList = []
+    for i in channel.data:
+        per = channel[i]
+        plat = per["platform"]
+        bean = VideoFactory.getBean(plat)
+        workList += bean.GetVideos(per, tool.settingConf["Platform"][plat])
     try:
-        workList = GetPlayList.get_work_list()
         cnt = 0
         for i in workList:
-            if unique.checkAndInsert(i["id"]):
+            video_id = i.channelParam["id"]
+            db_res = db.execute(
+                "select count(vid) from data where vid=?;", (video_id, )).fetchone()[0]
+            if int(db_res) != 0:
+                # print(video_id)
+                continue
+            if unique.checkAndInsert(video_id):
                 cnt += 1
                 buffer.put(i, block=True)
         logger.info(
@@ -62,6 +76,7 @@ def jobProducer():
     except Exception:
         logger = tool.getLogger()
         logger.error(f"upload-P", exc_info=True)
+    db.close()
     # logger.info("finish video Producer")
 
 
@@ -69,20 +84,26 @@ def __consume():
     account = tool.AccountManager("Anki")
     logger = tool.getLogger()
     logger.debug("start video Consumer")
+    proxy = tool.settingConf["Proxy"]
     while True:
         i = buffer.get(block=True)
-        logger.debug(json.dumps(i))
-        logger.info("start: vid[{}], 1080P[{}], Multipart[{}]".format(
-            i["id"], i["hd"], i["multipart"]))
-        vmer = getVideo.VideoManager(i["id"], i["hd"])
-        data = vmer.getVideo()
-        if data[0]:
-            if i["multipart"]:
+        channelInfo = i.channelParam
+        logger.debug(json.dumps(channelInfo))
+        logger.info("start: vid[{}], Multipart[{}]".format(
+            channelInfo["id"], channelInfo["multipart"]))
+        # vmer = getVideo.VideoManager(i["id"], i["hd"])
+        data = i.download(proxy)
+
+        if data:
+            fpath = i.path()
+            if len(fpath) <= 0:
+                continue
+            if channelInfo["multipart"]:
                 success, res, upos_uri = Upload.uploadWithOldBvid(
-                    account.getCookies(), i, data[1])
+                    account.getCookies(), channelInfo, fpath)
             else:
                 success, res, upos_uri = Upload.uploadWithNewBvid(
-                    account.getCookies(), i, data[1])
+                    account.getCookies(), channelInfo, fpath)
             if not success:
                 continue
             upos_uri = upos_uri.split(".")[0]
@@ -92,10 +113,10 @@ def __consume():
                 continue
             with tool.getDB() as db:
                 db.execute("insert into data(vid,bvid,title,filename) values(?,?,?,?);",
-                           (i["id"], res["data"]["bvid"], i["title"], upos_uri))
+                           (channelInfo["id"], res["data"]["bvid"], channelInfo["title"], upos_uri))
                 db.commit()
             logger.info(f"finished, bvid[{res['data']['bvid']}]")
-            vmer.deleteFile()
+            i.deleteFile()
         else:
             logger.error("download failed")
 
