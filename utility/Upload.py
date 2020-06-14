@@ -42,9 +42,9 @@ def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
         return False, ""
     upcdn = re.findall("upcdn=([^&]+)", upcdn)[0]
     logger.debug(f"upos[{upos}],cdn[{upcdn}]")
-
+    ext = videoPath.split(".")[-1]
     param = {
-        "name": "{}.mp4".format(int(time.time())),
+        "name": "{}.{}".format(int(time.time()), ext),
         "size": file_size,
         "r": upos,
         "profile": "ugcupos/bup",
