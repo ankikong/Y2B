@@ -134,7 +134,7 @@ def uploadFile(cookie: dict, videoPath: str, enableParallel=False) -> str:
     # 上传完成
     param = {
         'output': 'json',
-        'name': time.ctime() + ".mp4",
+        'name': time.ctime() + "." + ext,
         'profile': 'ugcupos/bup',
         'uploadId': upload_id,
         'biz_id': biz_id,
