@@ -11,7 +11,6 @@
 1. 先执行`pip install -r requirements.txt`,然后再执行`python init.py`
 2. 在conf文件夹,`setting.yaml`,在里面填写b站账号密码,再填写`GoogleApi`的密钥
 3. `channel.yaml`是指定搬运的`Youtube`频道
-4. 需要安装aria2c，并开启jsonrpc
 
 ### 运行
 
@@ -28,12 +27,7 @@
 ## 软件依赖
 
 - python >= 3.6
-- aria2
 - ffmpeg
-
-## aria2c 参考配置
-
-[aria.conf](./conf/aria.conf)
 
 ## 更新记录
 
