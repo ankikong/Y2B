@@ -27,7 +27,7 @@ class Video:
                     "format", self.youtube_dlParams["format"])  # 频道配置优先级最高
                 url = self.channelParam["url"]
                 self.__log.debug(
-                    f"start download: {json.dumps(self.youtube_dlParams)}")
+                    f"start download: {self.youtube_dlParams}")
                 # logger无法序列化，放在打印记录之后
                 self.youtube_dlParams["logger"] = self.__log
                 ydl = youtube_dl.YoutubeDL(self.youtube_dlParams)
@@ -43,7 +43,8 @@ class Video:
         """
         for i in os.listdir("./tmp"):
             if self.__uniq in i:
-                return f"./tmp/{i}"
+                if len(i.split(".")) == 2:
+                    return f"./tmp/{i}"
         return ""
 
     def deleteFile(self):
