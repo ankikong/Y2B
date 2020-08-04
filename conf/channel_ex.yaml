@@ -44,6 +44,7 @@
 #               {ptime} 源视频发布时间
 #               {ctitle} 源视频的发布者的名字
 #               {surl} 源视频地址
+#               {sdesc} 源视频描述
 #    注意：由于b站限制视频描述和标题长度，请自行保证格式化后的长度不会超过要求，否则会报错！！！
 # 如何获取频道id：
 # 例如TED频道：https://www.youtube.com/channel/UCAuUUnT6oDeKwE6v1NGQxug
