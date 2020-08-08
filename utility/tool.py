@@ -13,6 +13,7 @@ import logging.config
 import threading
 import yaml
 import sqlite3
+import qrcode
 # pycryptodome pycrypto
 
 
@@ -368,7 +369,21 @@ class AccountManager:
         self.__s = Session()
         self.__s.headers = header
 
-    def loginWithIdAndPwd(self, userid, password):
+    def getCapture(self):
+        _pic = self.__s.get("https://passport.bilibili.com/captcha").content
+        _pic = b64encode(_pic).decode()
+        for _ in range(10):
+            try:
+                rs = self.__s.post(
+                    "http://106.75.36.27:19951/captcha/v1", json={"image": _pic}).json()["message"]
+                break
+            except:
+                pass
+        else:
+            exit("login failed")
+        return rs
+
+    def loginWithIdAndPwd(self, userid, password, cap=False):
         baseurl = "https://passport.bilibili.com/api/v3/oauth2/login"
         url = 'https://passport.bilibili.com/api/oauth2/getKey'
 
@@ -381,10 +396,12 @@ class AccountManager:
 
         keyItem = {
             "appkey": APP_KEY,
-            "build": "5390000",
-            "channel": "bili",
+            "build": "520001",
+            # "channel": "bili",
             "mobi_app": "android",
+            "device": "android",
             "platform": "android",
+            "actionKey": "appkey",
             "ts": int(time.time()),
         }
 
@@ -404,13 +421,16 @@ class AccountManager:
         # password = parse.quote_plus(password)
         items = {
             "appkey": APP_KEY,
-            "build": "5390000",
+            "actionKey": "appkey",
+            "build": "520001",
             "channel": "bili",
             "mobi_app": "android",
             "password": password,
             "platform": "android",
+            "device": "android",
             "ts": int(time.time()),
             "username": userid,
+            "captcha": self.getCapture() if cap else ""
         }
         # item = "appkey=" + APP_KEY + "&password=" + password + "&username=" + userid
         item = getSign2(items)
@@ -418,8 +438,9 @@ class AccountManager:
         if(page_temp['code'] != 0):
             logger = getLogger()
             logger.error(page_temp['message'])
+            logger.debug(json.dumps(page_temp))
             logger.error("check network, account, password settings...")
-            exit("error")
+            # exit("error")
 
         # print(page_temp)
         access_key = page_temp["data"]['token_info']['access_token']
@@ -439,7 +460,11 @@ class AccountManager:
             logger = getLogger()
             logger.error("no account, password in settings.yaml")
             exit("error")
-        token, reToken = self.loginWithIdAndPwd(usr, pwd)
+        try:
+            token, reToken = self.loginWithIdAndPwd(usr, pwd)
+        except:
+            token, reToken = self.loginWithIdAndPwd(usr, pwd, cap=True)
+
         self.__setting[self.__profileName]["token"] = token
         self.__setting[self.__profileName]["refreshtoken"] = reToken
         self.save()
@@ -602,6 +627,88 @@ def translateG(raw: str):
     for i in _rs["sentences"]:
         res += i["trans"]
     return res
+
+
+class QRLogin:
+    def __init__(self):
+        self.__s = Session()
+        self.__s.headers.update(
+            {"Referer": "https://passport.bilibili.com/login", "Origin": "https://passport.bilibili.com"})
+        self.__s.get("https://passport.bilibili.com/login")
+        self.__log = getLogger()
+        self.__setting = settingConf
+
+    def GetURL(self):
+        url = "https://passport.bilibili.com/qrcode/getLoginUrl"
+        data = self.__s.get(url).json()
+        if data["code"] != 0:
+            self.__log.error("unknown error")
+            exit("error")
+        key = data["data"]
+        return key["url"], key["oauthKey"], data["ts"] + 60 * 3 - 10
+
+    def GenQRcode(self, data):
+        _path = "tmp/qr.png"
+        if os.path.exists(_path):
+            os.remove(_path)
+        self.__log.info("qr:" + data)
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(data)
+        qr.make(fit=True)
+        img = qr.make_image()
+        img.save(_path)
+        qr.print_ascii()
+
+    def __getPersonInfo(self, cookies):
+        self.__s.cookies.update(cookies)
+        url = "https://api.bilibili.com/x/web-interface/nav"
+        res = self.__s.get(url).json()
+        return res
+
+    def checkIsLogin(self, cookies):
+        """ check whether token is expired; 检查配置文件中token是否过期
+        """
+        res = self.__getPersonInfo(cookies)
+        return res["data"]["isLogin"]
+
+    def CheckAndGet(self, key):
+        data = {
+            "oauthKey": key,
+            "gourl": "https://www.bilibili.com/"
+        }
+        _url = "https://passport.bilibili.com/qrcode/getLoginInfo"
+        rs = self.__s.post(_url, data=data).json()
+        if rs["status"]:
+            self.save()
+            return True
+        else:
+            return False
+
+    def save(self):
+        tmp = self.__s.cookies.get_dict()
+        self.__setting["Anki"]["cookie"] = tmp
+        self.__setting.save()
+        return tmp
+
+    def getCookies(self):
+        cookie = self.__setting["Anki"].get("cookie", None)
+        if cookie is not None:
+            if self.checkIsLogin(cookie):
+                return cookie
+        while True:
+            url, key, deadline = self.GetURL()
+            self.GenQRcode(url)
+            while time.time() < deadline:
+                if self.CheckAndGet(key):
+                    self.__log.info("login success")
+                    return self.save()
+                time.sleep(2)
+        raise Exception("fuck")
 
 
 if __name__ == "__main__":

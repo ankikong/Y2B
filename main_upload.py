@@ -17,7 +17,7 @@ def run():
     # {"title": tmp_data["title"], "id": video_id, "av": _["av"]}
     work = GetPlayList.get_work_list()
     logger = tool.getLogger()
-    account = tool.AccountManager("Anki")
+    account = tool.QRLogin()
     for i in work:
         logger.debug(json.dumps(i))
         logger.info("start: vid[{}], 1080P[{}], Multipart[{}]".format(
@@ -81,7 +81,7 @@ def jobProducer():
 
 
 def __consume():
-    account = tool.AccountManager("Anki")
+    account = tool.QRLogin()
     logger = tool.getLogger()
     logger.debug("start video Consumer")
     proxy = tool.settingConf["Proxy"]

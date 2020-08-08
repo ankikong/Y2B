@@ -25,7 +25,7 @@ def send(i, cookie):
 
 
 def run():
-    user = tool.AccountManager("Anki")
+    user = tool.QRLogin()
     cookie = user.getCookies()
     db = tool.getDB()
     rs = db.execute(
