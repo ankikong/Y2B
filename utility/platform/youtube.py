@@ -47,6 +47,7 @@ class Youtube(Bean):
             video_id = id_tmp["videoId"]
             tmpTitle = tmp_data["title"]
             stitle = tmp_data["title"]
+            tmpDesc = tmp_data["description"]
             if channel.get("titleTranslate", False):
                 tmpTitle = tool.translateG(tmpTitle)
             logger.debug(tmpTitle)
@@ -62,12 +63,14 @@ class Youtube(Bean):
                                                                ctitle=tmp_data["channelTitle"],
                                                                ptime=tmp_data["publishedAt"],
                                                                surl=f"https://www.youtube.com/watch?v={video_id}",
-                                                               stitle=stitle),
+                                                               stitle=stitle,
+                                                               sdesc=tmpDesc),
                 "desc": str(channel.get("desc", "")).format(title=tmpTitle,
                                                             ctitle=tmp_data["channelTitle"],
                                                             ptime=tmp_data["publishedAt"],
                                                             surl=f"https://www.youtube.com/watch?v={video_id}",
-                                                            stitle=stitle)
+                                                            stitle=stitle,
+                                                            sdesc=tmpDesc)
             })
             # tmpRs["tags"] = tmpRs.get("tags", "").split(",")
 
