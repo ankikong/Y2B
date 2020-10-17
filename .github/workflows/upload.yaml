@@ -1,0 +1,31 @@
+name: download and upload video
+
+on:
+  schedule:
+    - cron: "0/20 * * * *"
+
+env:
+  BILI_UP_VER: v0.1.14
+
+jobs:
+  main:
+    concurrency: download-and-upload
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - name: install dependency
+        run: |
+          sudo apt install ffmpeg -y
+          pip install -r requirements.txt
+          wget https://github.com/ForgQi/biliup-rs/releases/download/$BILI_UP_VER/biliupR-$BILI_UP_VER-x86_64-linux.tar.xz
+          tar xvf biliupR-$BILI_UP_VER-x86_64-linux.tar.xz
+          sudo mv biliupR-$BILI_UP_VER-x86_64-linux/biliup /usr/local/bin/
+          sudo chmod +x /usr/local/bin/biliup
+      - name: main logic
+        env:
+          GIST_ID: ${{secrets.GIST_ID}}
+          GIT_TOKEN: ${{secrets.GIT_TOKEN}}
+        run: python upload.py $GIT_TOKEN $GIST_ID

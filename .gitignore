@@ -9,3 +9,4 @@ conf/setting.conf
 conf/setting.yaml
 conf/channel.yaml
 tmp/
+cookies.json
