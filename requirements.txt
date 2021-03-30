@@ -22,7 +22,7 @@ pyflakes==2.1.1
 pylint==2.5.0
 pypinyin==0.37.0
 pytz==2020.1
-PyYAML==5.3.1
+PyYAML==5.4
 qrcode==6.1
 requests==2.22.0
 six==1.14.0
