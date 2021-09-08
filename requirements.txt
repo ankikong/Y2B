@@ -14,7 +14,7 @@ lazy-object-proxy==1.4.3
 mccabe==0.6.1
 numpy==1.19.1
 pep8==1.7.1
-Pillow==8.1.1
+Pillow==8.3.2
 pyasn1==0.4.8
 pycodestyle==2.5.0
 pycryptodome==3.9.6
