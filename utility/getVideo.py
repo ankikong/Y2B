@@ -1,7 +1,7 @@
 import re
 import os
 from utility import tool
-import youtube_dl
+import yt_dlp
 from urllib import parse
 import json
 
@@ -28,7 +28,7 @@ class VideoManager:
             opt["proxy"] = proxy
         _tmpRs: dict = None
         try:
-            ydl = youtube_dl.YoutubeDL(opt)
+            ydl = yt_dlp.YoutubeDL(opt)
             _tmpRs = ydl.extract_info(
                 f"https://www.youtube.com/watch?v={self.vid}", download=False)
         except:
