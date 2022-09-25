@@ -115,7 +115,7 @@ def download_cover(url, out):
 
 def upload_video(video_file, cover_file, _config, detail):
     yml = {
-        "line": "qn",
+        "line": "kodo",
         "limit": 3,
         "streamers": {
             video_file: {
