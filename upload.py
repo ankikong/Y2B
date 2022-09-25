@@ -142,7 +142,6 @@ def upload_video(video_file, cover_file, _config, detail):
         tmp.write(t)
     p = subprocess.Popen(
         ["biliup", "upload", "-c", "config.yaml"],
-        shell=True,
         stdout=subprocess.PIPE,
     )
     p.wait()
