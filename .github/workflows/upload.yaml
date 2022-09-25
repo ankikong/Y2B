@@ -3,6 +3,9 @@ name: download and upload video
 on:
   schedule:
     - cron: "0/20 * * * *"
+  push:
+    branches:
+      - "master"
 
 env:
   BILI_UP_VER: v0.1.14
