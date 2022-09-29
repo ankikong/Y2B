@@ -2,11 +2,13 @@ import json
 import os
 import re
 import subprocess
+import time
 import requests
 import xmltodict
 import yaml
 import argparse
 
+UPLOAD_SLEEP_SECOND = 60 * 2  # 2min
 UPLOADED_VIDEO_FILE = "uploaded_video.json"
 CONFIG_FILE = "config.json"
 COOKIE_FILE = "cookie.json"
@@ -177,6 +179,7 @@ def upload_process(gist_id, token):
         i["ret"] = ret
         uploaded[i["detail"]["vid"]] = i
         update_gist(gist_id, token, UPLOADED_VIDEO_FILE, uploaded)
+        time.sleep(UPLOAD_SLEEP_SECOND)
     os.remove("cookies.json")
 
 
