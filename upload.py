@@ -116,6 +116,9 @@ def download_cover(url, out):
 
 
 def upload_video(video_file, cover_file, _config, detail):
+    title = detail['title']
+    if len(title) > 80:
+        title = title[:80]
     yml = {
         "line": "kodo",
         "limit": 3,
@@ -125,7 +128,7 @@ def upload_video(video_file, cover_file, _config, detail):
                 "source": detail['origin'],
                 "tid": _config['tid'],  # 投稿分区
                 "cover": cover_file,  # 视频封面
-                "title": detail['title'],
+                "title": title,
                 "desc_format_id": 0,
                 "desc": "搬运：" + detail["origin"],
                 "dolby": 0,  # 杜比音效
@@ -180,6 +183,10 @@ def upload_process(gist_id, token):
         uploaded[i["detail"]["vid"]] = i
         update_gist(gist_id, token, UPLOADED_VIDEO_FILE, uploaded)
         time.sleep(UPLOAD_SLEEP_SECOND)
+    os.system("biliup renew")
+    with open("cookies.json", encoding="utf8") as tmp:
+        data = tmp.read()
+        update_gist(gist_id, token, COOKIE_FILE, json.loads(data))
     os.remove("cookies.json")
 
 
