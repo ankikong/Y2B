@@ -106,7 +106,7 @@ def get_all_video(_config):
 
 
 def download_video(url, out):
-    subprocess.run(["yt-dlp", url, "-o", out], check=True)
+    subprocess.run(["yt-dlp", url, "-o --match-filter !is_live", out], check=True)
 
 
 def download_cover(url, out):
