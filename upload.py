@@ -41,7 +41,7 @@ def get_gist(_gid, token):
         u = json.loads(uploaded_file)
         return c, t, u
     except Exception as e:
-        print("gist 格式错误，重新初始化:", e)
+        print("gist 格式错误，重新初始化:", e, flush=True)
     return c, t, {}
 
 
@@ -105,8 +105,23 @@ def get_all_video(_config):
     return ret
 
 
-def download_video(url, out):
-    subprocess.run(["yt-dlp", url, "-o", out], check=True)
+def download_video(url, out, format):
+    try:
+        out = subprocess.check_output(
+            ["yt-dlp", url, "-f", format, "-o", out], stderr=subprocess.STDOUT)
+        print(out[-512:], flush=True)
+        print("视频下载完毕:" + url, flush=True)
+        return True
+    except subprocess.CalledProcessError as e:
+        out = e.output.decode("utf8")
+        if "This live event will begin in" in out:
+            print("直播预告，跳过", flush=True)
+            return False
+        if "Requested format is not available" in out:
+            print("视频无此类型：" + format, flush=True)
+            return False
+        print("未知错误:" + out, flush=True)
+        raise e
 
 
 def download_cover(url, out):
@@ -155,18 +170,31 @@ def upload_video(video_file, cover_file, _config, detail):
     buf = p.stdout.read().splitlines(keepends=False)
     if len(buf) < 2:
         raise Exception(buf)
-    data = buf[-2]
-    data = data.decode()
-    data = re.findall("({.*})", data)[0]
+    try:
+        data = buf[-2]
+        data = data.decode()
+        data = re.findall("({.*})", data)[0]
+    except Exception as e:
+        print(f"error output:{buf}", flush=True)
+        raise e
     return json.loads(data)
 
 
 def process_one(detail, config):
-    download_video(detail["origin"], detail["vid"] + ".webm")
+    format = ["webm", "flv", "mp4"]
+    v_ext = None
+    for ext in format:
+        if download_video(detail["origin"], detail["vid"] + f".{ext}", f"{ext}"):
+            v_ext = ext
+            print(f"使用格式：{ext}")
+            break
+    if v_ext is None:
+        print("无合适格式", flush=True)
+        return False
     download_cover(detail["cover_url"], detail["vid"] + ".jpg")
-    ret = upload_video(detail["vid"] + ".webm",
+    ret = upload_video(detail["vid"] + f".{v_ext}",
                        detail["vid"] + ".jpg", config, detail)
-    os.remove(detail["vid"] + ".webm")
+    os.remove(detail["vid"] + f".{v_ext}")
     os.remove(detail["vid"] + ".jpg")
     return ret
 
@@ -179,11 +207,13 @@ def upload_process(gist_id, token):
     need = select_not_uploaded(need_to_process, uploaded)
     for i in need:
         ret = process_one(i["detail"], i["config"])
+        if ret is None:
+            continue
         i["ret"] = ret
         uploaded[i["detail"]["vid"]] = i
         update_gist(gist_id, token, UPLOADED_VIDEO_FILE, uploaded)
         time.sleep(UPLOAD_SLEEP_SECOND)
-    os.system("biliup renew")
+    os.system("biliup renew 2>&1 > /dev/null")
     with open("cookies.json", encoding="utf8") as tmp:
         data = tmp.read()
         update_gist(gist_id, token, COOKIE_FILE, json.loads(data))
