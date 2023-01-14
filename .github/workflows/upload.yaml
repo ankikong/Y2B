@@ -22,7 +22,8 @@ jobs:
           python-version: "3.8"
       - name: install dependency
         run: |
-          sudo apt install ffmpeg -y
+          sudo apt-get update
+          sudo apt-get install ffmpeg -y
           pip install -r requirements.txt
           wget https://github.com/ForgQi/biliup-rs/releases/download/$BILI_UP_VER/biliupR-$BILI_UP_VER-x86_64-linux.tar.xz
           tar xvf biliupR-$BILI_UP_VER-x86_64-linux.tar.xz
