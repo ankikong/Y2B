@@ -29,6 +29,7 @@ jobs:
           tar xvf biliupR-$BILI_UP_VER-x86_64-linux.tar.xz
           sudo mv biliupR-$BILI_UP_VER-x86_64-linux/biliup /usr/local/bin/
           sudo chmod +x /usr/local/bin/biliup
+          pip install yt-dlp --upgrade
       - name: main logic
         env:
           GIST_ID: ${{secrets.GIST_ID}}
