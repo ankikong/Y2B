@@ -234,7 +234,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("token", help="github api token", type=str)
     parser.add_argument("gistId", help="gist id", type=str)
-    parser.add_argument("logLevel", help="log level, default is info", default="INFO", type=str)
+    parser.add_argument("logLevel", help="log level, default is info", default="INFO", type=str, required=False)
     args = parser.parse_args()
 
     logging.basicConfig(
