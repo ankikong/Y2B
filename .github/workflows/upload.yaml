@@ -44,4 +44,4 @@ jobs:
         env:
           GIST_ID: ${{secrets.GIST_ID}}
           GIT_TOKEN: ${{secrets.GIT_TOKEN}}
-        run: python upload.py $GIT_TOKEN $GIST_ID ${{ inputs.logLevel }}
+        run: python upload.py $GIT_TOKEN $GIST_ID --logLevel="${{ inputs.logLevel }}"

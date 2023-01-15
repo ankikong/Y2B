@@ -234,12 +234,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("token", help="github api token", type=str)
     parser.add_argument("gistId", help="gist id", type=str)
-    parser.add_argument("logLevel", help="log level, default is info", default="INFO", type=str, required=False)
+    parser.add_argument("--logLevel", help="log level, default is info", default="INFO", type=str, required=False)
     args = parser.parse_args()
-
+    level = args.logLevel if args.logLevel != "" else "INFO"
     logging.basicConfig(
         stream=sys.stdout,
-        level=logging.getLevelName(args.logLevel),
+        level=logging.getLevelName(level),
         format='%(filename)s:%(lineno)d %(asctime)s.%(msecs)03d %(levelname)s: %(message)s',
         datefmt="%H:%M:%S",
     )
