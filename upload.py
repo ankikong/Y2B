@@ -7,6 +7,9 @@ import requests
 import xmltodict
 import yaml
 import argparse
+import logging
+import sys
+
 
 UPLOAD_SLEEP_SECOND = 60 * 2  # 2min
 UPLOADED_VIDEO_FILE = "uploaded_video.json"
@@ -41,7 +44,7 @@ def get_gist(_gid, token):
         u = json.loads(uploaded_file)
         return c, t, u
     except Exception as e:
-        print("gist 格式错误，重新初始化:", e, flush=True)
+        logging.error(f"gist 格式错误，重新初始化:{e}")
     return c, t, {}
 
 
@@ -88,7 +91,9 @@ def select_not_uploaded(video_list: list, _uploaded: dict):
     ret = []
     for i in video_list:
         if _uploaded.get(i["detail"]["vid"]) is not None:
+            logging.debug(f'vid:{i["detail"]["vid"]} 已被上传')
             continue
+        logging.debug(f'vid:{i["detail"]["vid"]} 待上传')
         ret.append(i)
     return ret
 
@@ -109,18 +114,18 @@ def download_video(url, out, format):
     try:
         out = subprocess.check_output(
             ["yt-dlp", url, "-f", format, "-o", out], stderr=subprocess.STDOUT)
-        print(out[-512:], flush=True)
-        print("视频下载完毕:" + url, flush=True)
+        logging.debug(out[-512:])
+        logging.info("视频下载完毕:" + url)
         return True
     except subprocess.CalledProcessError as e:
         out = e.output.decode("utf8")
         if "This live event will begin in" in out:
-            print("直播预告，跳过", flush=True)
+            logging.info("直播预告，跳过")
             return False
         if "Requested format is not available" in out:
-            print("视频无此类型：" + format, flush=True)
+            logging.debug("视频无此类型：" + format)
             return False
-        print("未知错误:" + out, flush=True)
+        logging.error("未知错误:" + out)
         raise e
 
 
@@ -157,8 +162,9 @@ def upload_video(video_file, cover_file, _config, detail):
             }
         }
     }
-    with open("config.yaml", "w") as tmp:
+    with open("config.yaml", "w", encoding="utf8") as tmp:
         t = yaml.dump(yml, Dumper=yaml.Dumper)
+        logging.debug(f"biliup 业务配置：{t}")
         tmp.write(t)
     p = subprocess.Popen(
         ["biliup", "upload", "-c", "config.yaml"],
@@ -175,21 +181,23 @@ def upload_video(video_file, cover_file, _config, detail):
         data = data.decode()
         data = re.findall("({.*})", data)[0]
     except Exception as e:
-        print(f"error output:{buf}", flush=True)
+        logging.error(f"输出结果错误:{buf}")
         raise e
+    logging.debug(f'上传完成，返回：{data}')
     return json.loads(data)
 
 
 def process_one(detail, config):
+    logging.info(f'开始：{detail["vid"]}')
     format = ["webm", "flv", "mp4"]
     v_ext = None
     for ext in format:
         if download_video(detail["origin"], detail["vid"] + f".{ext}", f"{ext}"):
             v_ext = ext
-            print(f"使用格式：{ext}")
+            logging.info(f"使用格式：{ext}")
             break
     if v_ext is None:
-        print("无合适格式", flush=True)
+        logging.error("无合适格式")
         return False
     download_cover(detail["cover_url"], detail["vid"] + ".jpg")
     ret = upload_video(detail["vid"] + f".{v_ext}",
@@ -212,6 +220,8 @@ def upload_process(gist_id, token):
         i["ret"] = ret
         uploaded[i["detail"]["vid"]] = i
         update_gist(gist_id, token, UPLOADED_VIDEO_FILE, uploaded)
+        logging.info(f'上传完成,vid:{i["detail"]["vid"]},aid:{ret["data"]["aid"]},bvid:{ret["data"]["bvid"]}')
+        logging.debug(f"防验证码，暂停 {UPLOAD_SLEEP_SECOND} 秒")
         time.sleep(UPLOAD_SLEEP_SECOND)
     os.system("biliup renew 2>&1 > /dev/null")
     with open("cookies.json", encoding="utf8") as tmp:
@@ -224,5 +234,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("token", help="github api token", type=str)
     parser.add_argument("gistId", help="gist id", type=str)
+    parser.add_argument("logLevel", help="log level, default is info", default="INFO", type=str)
     args = parser.parse_args()
+
+    logging.basicConfig(
+        stream=sys.stdout,
+        level=logging.getLevelName(args.logLevel),
+        format='%(filename)s:%(lineno)d %(asctime)s.%(msecs)03d %(levelname)s: %(message)s',
+        datefmt="%H:%M:%S",
+    )
     upload_process(args.gistId, args.token)
