@@ -7,6 +7,15 @@ on:
     branches:
       - "master"
   workflow_dispatch:
+    inputs:
+      logLevel:
+        description: "Log level"
+        required: true
+        default: "INFO"
+        type: choice
+        options:
+          - INFO
+          - DEBUG
 
 env:
   BILI_UP_VER: v0.1.14
@@ -30,8 +39,9 @@ jobs:
           sudo mv biliupR-$BILI_UP_VER-x86_64-linux/biliup /usr/local/bin/
           sudo chmod +x /usr/local/bin/biliup
           pip install yt-dlp --upgrade
+          sudo timedatectl set-timezone "Asia/Shanghai"
       - name: main logic
         env:
           GIST_ID: ${{secrets.GIST_ID}}
           GIT_TOKEN: ${{secrets.GIT_TOKEN}}
-        run: python upload.py $GIT_TOKEN $GIST_ID
+        run: python upload.py $GIT_TOKEN $GIST_ID ${{ inputs.logLevel }}
