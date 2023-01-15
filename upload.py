@@ -71,6 +71,11 @@ def update_gist(_gid, token, file, data):
         raise Exception("github TOKEN 错误")
 
 
+def get_file_size(filename):
+    sz = os.path.getsize(filename)
+    return int(sz/1024/1024)
+
+
 def get_video_list(channel_id: str):
     res = requests.get(
         "https://www.youtube.com/feeds/videos.xml?channel_id=" + channel_id).text
@@ -115,7 +120,7 @@ def download_video(url, out, format):
         out = subprocess.check_output(
             ["yt-dlp", url, "-f", format, "-o", out], stderr=subprocess.STDOUT)
         logging.debug(out[-512:])
-        logging.info("视频下载完毕:" + url)
+        logging.info(f"视频下载完毕，大小：{get_file_size(out)} MB")
         return True
     except subprocess.CalledProcessError as e:
         out = e.output.decode("utf8")
@@ -220,7 +225,8 @@ def upload_process(gist_id, token):
         i["ret"] = ret
         uploaded[i["detail"]["vid"]] = i
         update_gist(gist_id, token, UPLOADED_VIDEO_FILE, uploaded)
-        logging.info(f'上传完成,vid:{i["detail"]["vid"]},aid:{ret["data"]["aid"]},bvid:{ret["data"]["bvid"]}')
+        logging.info(
+            f'上传完成,vid:{i["detail"]["vid"]},aid:{ret["data"]["aid"]},bvid:{ret["data"]["bvid"]}')
         logging.debug(f"防验证码，暂停 {UPLOAD_SLEEP_SECOND} 秒")
         time.sleep(UPLOAD_SLEEP_SECOND)
     os.system("biliup renew 2>&1 > /dev/null")
@@ -234,12 +240,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("token", help="github api token", type=str)
     parser.add_argument("gistId", help="gist id", type=str)
-    parser.add_argument("--logLevel", help="log level, default is info", default="INFO", type=str, required=False)
+    parser.add_argument("--logLevel", help="log level, default is info",
+                        default="INFO", type=str, required=False)
     args = parser.parse_args()
-    level = args.logLevel if args.logLevel != "" else "INFO"
     logging.basicConfig(
         stream=sys.stdout,
-        level=logging.getLevelName(level),
+        level=logging.getLevelName(args.logLevel),
         format='%(filename)s:%(lineno)d %(asctime)s.%(msecs)03d %(levelname)s: %(message)s',
         datefmt="%H:%M:%S",
     )
