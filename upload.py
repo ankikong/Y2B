@@ -206,7 +206,7 @@ def process_one(detail, config):
             break
     if v_ext is None:
         logging.error("无合适格式")
-        return False
+        return
     download_cover(detail["cover_url"], detail["vid"] + ".jpg")
     ret = upload_video(detail["vid"] + f".{v_ext}",
                        detail["vid"] + ".jpg", config, detail)
