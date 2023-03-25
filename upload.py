@@ -130,6 +130,9 @@ def download_video(url, out, format):
         if "Requested format is not available" in out:
             logging.debug("视频无此类型：" + format)
             return False
+        if "This video requires payment to watch" in out:
+            logging.info("付费视频，跳过")
+            return False
         logging.error("未知错误:" + out)
         raise e
 
